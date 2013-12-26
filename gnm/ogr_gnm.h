@@ -3,6 +3,7 @@
 
 #include "gnmcore.h"
 
+
 //*****************************************************************************
 //*************************** Надстройка над OGR ******************************
 //*****************************************************************************
@@ -11,16 +12,7 @@
 // gnmmanager.h, а методы по анализу созданной сети в gnmanalysis.h.
 
 
-// Базовые объявления находятся в ogrsf_frmts.h
-
-
-// Вопросы
-// 1. Наследование от OGR означает только реализацию виртуальных методов, объявленных
-//    в абстрактных классах. Как вызывать методы, специфические именно для наследников?
-//    Возможно: всю работу организовать в некой библиотеке (gnmmanager.h)
-
-
-class OGRGnmLayer : public OGRLayer //: public OGRAbstractProxiedLayer
+class OGRGnmLayer : public OGRLayer
 {
     private:
 
@@ -29,22 +21,23 @@ class OGRGnmLayer : public OGRLayer //: public OGRAbstractProxiedLayer
 
     public:
 
-     //...
-     virtual OGRErr CreateField (...);
-
-     //...
-     virtual OGRErr CreateFeature (...);
-
-     //...
-     virtual OGRFeature *GetFeature (...);
 };
+
 
 class OGRGnmDataSource : public OGRDataSource
 {
     private:
 
+     //имя данного источника данных
+     char *pszName;
+
+     //три основныхсистемных слоя
+     //OGRGnmLayer* network_meta;
+     //OGRGnmLayer* network_graph;
+     //OGRGnmLayer* network_rules;
+
      //текущий формат сети (OGR-определённая строка)
-     const char *formatName;
+     char *formatName;
 
      //основной ДатаСорс, хранящий гео данные в заданном формате
      OGRDataSource* geoDataSrc;
@@ -55,62 +48,88 @@ class OGRGnmDataSource : public OGRDataSource
      long getNewId();
 
      //таблица связей объектов (граф), где элементом со связями представлен каждый объект сети
-     std::vector<NElement> graph;
+     //std::vector<NElement> graph;
+
+    public:
+
+    //собственные методы
+
+     //из туториала:
+     //The constructor is a simple initializer to a default state.
+     //The Open() will take care of actually attaching it to a file.
+     //The destructor is responsible for orderly cleanup of layers.
+
+     OGRGnmDataSource();
+     ~OGRGnmDataSource();
+
+     //открытие источника данных
+     // - сетевые данные
+     // - география в заданном формате
+     NErr open(const char *pszFilename, int bUpdate, char **papszOptions);
+
+     //создание
+     NErr create(const char *pszFilename, char **papszOptions);
 
      //соединяет два объекта, добавляя связи в массив, причём
      // - перед этим смотрит правила соединения
      // - после этого смотрит правила поведения
      // - после этого смотрит правила влияния
-     NErr connect(long id1, long id2);
+     //NErr connect(long id1, long id2);
 
      //разъединяет два объекта (только при изменении правил)
      // - после этого смотрит правила поведения
      // - после этого смотрит правила влияния
-     void disconnect(long id1, long id2);
-
-    public:
+     //void disconnect(long id1, long id2);
 
     //здесь должны быть только те методы, которые объявлены в абстрактном OGRDataSource
-
-     //здесь также инициализируем и удаляем geoDataSrc в зависимости от выбранного формата
-     OGRGnmDataSource();
-     ~OGRGnmDataSource();
 
      //новый слой создаётся в geoDataSrc, причём:
      // - устанавливается уникальный id при помощи OGRFeature::SetFID()
      // - добавляются поля по умолчанию (блокировка, направление)
-     virtual OGRLayer *CreateLayer(...);
+     //OGRLayer *CreateLayer(const char *pszName, OGRSpatialReference *poSpatialRef = NULL,
+                           //OGRwkbGeometryType eGType = wkbUnknown,
+                           //char ** papszOptions = NULL);
 
      //сохраняются сетевые данные и данные из geoDataSrc
-     virtual OGRErr SyncToDisk(...);
+     //OGRErr SyncToDisk();
 
      //запрос выполняется к geoDataSrc
-     virtual OGRLayer *ExecuteSQL(...);
-
-     //проверяет возможности как себя, так и geoDataSrc
-     virtual int TestCapability(...);
+     //OGRLayer *ExecuteSQL(const char *pszStatement, OGRGeometry *poSpatialFilter,
+                            //const char *pszDialect);
 
      //методы по работе со слоями надо просто передать на выполнение в geoDataSrc
-     virtual int GetLayerCount(...);
-     virtual OGRLayer *GetLayer(...);
-     virtual OGRLayer *GetLayerByName(...);
+
+     const char *GetName();
+
+     int GetLayerCount();
+
+     OGRLayer *GetLayer(int nLayer);
+
+     //проверяет возможности как себя, так и geoDataSrc
+     int TestCapability(const char *);
 };
 
-class OGRGnmkDriver : public OGRSFDriver
+
+class OGRGnmDriver : public OGRSFDriver
 {
     public:
 
      ~OGRGnmDriver();
 
-     //создаём источник данных, открывая файлы/бд нужного формата и подгружая к ним сетевые данные, причём:
-     // - проверять на соответствие версию формата сети
-     OGRDataSource *Open(...);
+     const char *GetName();
 
-     //создаёт OGRNetworkDataSource и вызывает CreateDataSource() для заданного формата
-     virtual OGRDataSource *CreateDataSource(...);
+     OGRDataSource *Open(const char *pszFilename, int bUpdate, char **papszOptions);
 
+     OGRDataSource *Open(const char *pszFilename, int bUpdate);
+
+     OGRDataSource *CreateDataSource(const char *pszName, char **papszOptions);
+
+     OGRErr DeleteDataSource(const char *pszName);
+
+     int TestCapability(const char* pszCap);
+
+     //TODO: RegisterOGRGnm();
 };
-
 
 
 #endif // OGR_GNM_H

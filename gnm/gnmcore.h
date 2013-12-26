@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "ogrsf_frmts.h"
+
 //возвращаемый код ошибки
 typedef int NErr;
 
