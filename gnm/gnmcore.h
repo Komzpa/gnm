@@ -15,25 +15,25 @@ typedef int NErr;
 
 
 //элемент графа с его связями
-struct NElement
-{
+//struct NElement
+//{
     //какой объект
-    long id;
+    //long id;
 
     //с какими связан
-    std::vector<long> conIds;
+    //std::vector<long> conIds;
 
     //вес (цена прохода по этому объекту)
     // - должна формироваться исходя из правил в методе подготовки сети
-    long weight;
-};
+    //long weight;
+//};
 
 //массив таких правил формируется при добавлении строк правил
-class NRule
-{
-    public:
-     NRule(std::string ruleString);
-};
+//class NRule
+//{
+    //public:
+     //NRule(std::string ruleString);
+//};
 
 
 #endif // GNMCORE_H

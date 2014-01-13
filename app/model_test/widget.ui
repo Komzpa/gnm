@@ -53,45 +53,6 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QPushButton" name="pushButton">
-            <property name="maximumSize">
-             <size>
-              <width>150</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Create test Shapefile</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_3">
-            <property name="maximumSize">
-             <size>
-              <width>150</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Load test Shapefile</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_2">
-            <property name="maximumSize">
-             <size>
-              <width>150</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Create test PostGIS db</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="Line" name="line">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -102,12 +63,19 @@
            <widget class="QPushButton" name="pushButton_4">
             <property name="maximumSize">
              <size>
-              <width>150</width>
+              <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="text">
-             <string>test</string>
+             <string>create DataSource</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton">
+            <property name="text">
+             <string>open DataSource</string>
             </property>
            </widget>
           </item>

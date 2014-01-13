@@ -27,7 +27,9 @@ OGRDataSource* OGRGnmDriver::Open(const char* pszFilename, int bUpdate, char** p
         return NULL;
     }
     else
+    {
         return poDS;
+    }
 }
 
 
@@ -44,6 +46,7 @@ OGRDataSource* OGRGnmDriver::CreateDataSource(const char *pszName, char **papszO
 
     OGRGnmDataSource *poDS = new OGRGnmDataSource();
     char *test = "test";
+
     if(poDS->create(pszName, &test) != NERR_NONE)
     {
         delete poDS;

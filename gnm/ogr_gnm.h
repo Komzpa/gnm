@@ -4,20 +4,12 @@
 #include "gnmcore.h"
 
 
-//*****************************************************************************
-//*************************** Надстройка над OGR ******************************
-//*****************************************************************************
-// В модуле ogr_gnm.h расположены только наследники от классов OGR.
-// Методы, создающие объекты этих классов (т.е. формирующие сеть) находятся в
-// gnmmanager.h, а методы по анализу созданной сети в gnmanalysis.h.
-
-
 class OGRGnmLayer : public OGRLayer
 {
     private:
 
      //хранит указатель на слой заданного формата, с которым будет производиться операция
-     OGRLayer *geoLayer;
+     //OGRLayer *geoLayer;
 
     public:
 
@@ -31,28 +23,19 @@ class OGRGnmDataSource : public OGRDataSource
      //имя данного источника данных
      char *pszName;
 
-     //три основныхсистемных слоя
-     //OGRGnmLayer* network_meta;
-     //OGRGnmLayer* network_graph;
-     //OGRGnmLayer* network_rules;
-
-     //текущий формат сети (OGR-определённая строка)
-     char *formatName;
-
      //основной ДатаСорс, хранящий гео данные в заданном формате
      OGRDataSource* geoDataSrc;
 
      //счётчик последнего выданного id объекту
-     long idCounter;
+     //long idCounter;
+
      //метод, выдающий новый глобальный id объекту исходя из счётчика
-     long getNewId();
+     //long getNewId();
 
      //таблица связей объектов (граф), где элементом со связями представлен каждый объект сети
      //std::vector<NElement> graph;
 
     public:
-
-    //собственные методы
 
      //из туториала:
      //The constructor is a simple initializer to a default state.
@@ -62,12 +45,8 @@ class OGRGnmDataSource : public OGRDataSource
      OGRGnmDataSource();
      ~OGRGnmDataSource();
 
-     //открытие источника данных
-     // - сетевые данные
-     // - география в заданном формате
      NErr open(const char *pszFilename, int bUpdate, char **papszOptions);
 
-     //создание
      NErr create(const char *pszFilename, char **papszOptions);
 
      //соединяет два объекта, добавляя связи в массив, причём
@@ -90,14 +69,10 @@ class OGRGnmDataSource : public OGRDataSource
                            //OGRwkbGeometryType eGType = wkbUnknown,
                            //char ** papszOptions = NULL);
 
-     //сохраняются сетевые данные и данные из geoDataSrc
      //OGRErr SyncToDisk();
 
-     //запрос выполняется к geoDataSrc
      //OGRLayer *ExecuteSQL(const char *pszStatement, OGRGeometry *poSpatialFilter,
                             //const char *pszDialect);
-
-     //методы по работе со слоями надо просто передать на выполнение в geoDataSrc
 
      const char *GetName();
 
@@ -105,7 +80,6 @@ class OGRGnmDataSource : public OGRDataSource
 
      OGRLayer *GetLayer(int nLayer);
 
-     //проверяет возможности как себя, так и geoDataSrc
      int TestCapability(const char *);
 };
 
