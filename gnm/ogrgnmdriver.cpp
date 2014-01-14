@@ -13,15 +13,11 @@ const char* OGRGnmDriver::GetName()
 }
 
 
-OGRDataSource* OGRGnmDriver::Open(const char* pszFilename, int bUpdate, char** papszOptions)
+OGRDataSource* OGRGnmDriver::Open(const char* pszFilename, int bUpdate)
 {
     OGRGnmDataSource *poDS = new OGRGnmDataSource();
 
-    //TODO: брать из papszOptions формат, при помощи которого в OGRGnmDataSource создавать
-    //внутренний источник данных
-
-    char *test = "test";
-    if(poDS->open(pszFilename, bUpdate, &test) != NERR_NONE)
+    if(poDS->open(pszFilename, bUpdate, NULL) != NERR_NONE)
     {
         delete poDS;
         return NULL;
@@ -33,21 +29,11 @@ OGRDataSource* OGRGnmDriver::Open(const char* pszFilename, int bUpdate, char** p
 }
 
 
-OGRDataSource* OGRGnmDriver::Open(const char* pszFilename, int bUpdate)
-{
-    return Open(pszFilename,bUpdate,NULL);
-}
-
-
 OGRDataSource* OGRGnmDriver::CreateDataSource(const char *pszName, char **papszOptions)
 {
-    //TODO: брать из papszOptions формат, при помощи которого в OGRGnmDataSource создавать
-    //внутренний источник данных
-
     OGRGnmDataSource *poDS = new OGRGnmDataSource();
-    char *test = "test";
 
-    if(poDS->create(pszName, &test) != NERR_NONE)
+    if(poDS->create(pszName, papszOptions) != NERR_NONE)
     {
         delete poDS;
         return NULL;
@@ -59,8 +45,7 @@ OGRDataSource* OGRGnmDriver::CreateDataSource(const char *pszName, char **papszO
 
 OGRErr OGRGnmDriver::DeleteDataSource(const char *pszName)
 {
-    //TODO: разобраться, что удалять
-
+    // TODO: understand what to delete.
     return OGRERR_NONE;
 }
 

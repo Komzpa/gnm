@@ -32,12 +32,12 @@ void Widget::on_pushButton_4_clicked()
 }
 
 
-//открываем Дата Сорс (тестим)
+//читаем с ДатаСорса (тестим)
 void Widget::on_pushButton_clicked()
 {
     const char *str;
 
-    //далее согласно OGR API Tutorial
+    //далее согласно OGR API Tutorial, чтение из слоя
 
     OGRRegisterAll();
 
@@ -56,7 +56,7 @@ void Widget::on_pushButton_clicked()
 
     OGRLayer *poLayer;
     str = "network_meta";
-    poLayer = poDS->GetLayerByName("network_meta");
+    poLayer = poDS->GetLayerByName(str);
     if( poLayer == NULL )
     {
         emit toLog(QString("[error] Can not open layer ") + QString(str));
@@ -74,8 +74,68 @@ void Widget::on_pushButton_clicked()
 }
 
 
+//добавляем новый слой с геометрией + добавляем в него объекты
+void Widget::on_pushButton_2_clicked()
+{
+    OGRRegisterAll();
 
+    OGRDataSource *poDS;
+    const char *str;
+    str = "..\\..\\temp";
+    //TEMP: аналогично открытию
+    OGRSFDriver *dr = new OGRGnmDriver();
+    poDS = dr->Open(str,TRUE);
+    if( poDS == NULL )
+    {
+        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        return;
+    }
 
+    //далее согласно OGR API Tutorial, создание слоя и запись объектов
+
+    //создаём слой
+    OGRLayer *poLayer;
+    poLayer = poDS->CreateLayer("test_point_layer", NULL, wkbPoint, NULL);
+    if( poLayer == NULL )
+    {
+        emit toLog(QString("[error] Can not create layer"));
+        return;
+    }
+
+    //добавляем некий атрибут (к уже имеющимся стандартным атрибутам)
+    OGRFieldDefn oField("test_field", OFTString);
+    oField.SetWidth(32);
+    if( poLayer->CreateField( &oField ) != OGRERR_NONE )
+    {
+        emit toLog(QString("[error] Can not create field"));
+        return;
+    }
+
+    //добавляем объекты с геометрией
+    for (int i=0; i<3; i++)
+    {
+        OGRFeature *poFeature;
+        poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+        poFeature->SetField("test_field", "test string");
+        poFeature->SetField("is_blocked", 99);
+        poFeature->SetField("direction", 55);
+        OGRPoint pt;
+        pt.setX(i * 5.0);
+        pt.setY(0.0);
+        poFeature->SetGeometry(&pt);
+        if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+        {
+            emit toLog(QString("[error] Can not create geometry feature"));
+            return;
+        }
+
+         OGRFeature::DestroyFeature(poFeature);
+    }
+    poDS->SyncToDisk();
+    OGRDataSource::DestroyDataSource( poDS );
+    emit toLog(QString("[info] Features added successfully to the new layer"));
+
+}
 
 
 

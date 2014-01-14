@@ -44,7 +44,7 @@
          </property>
          <property name="maximumSize">
           <size>
-           <width>200</width>
+           <width>300</width>
            <height>16777215</height>
           </size>
          </property>
@@ -75,7 +75,14 @@
           <item>
            <widget class="QPushButton" name="pushButton">
             <property name="text">
-             <string>open DataSource</string>
+             <string>read from DataSource</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_2">
+            <property name="text">
+             <string>add test layer with geometry objects</string>
             </property>
            </widget>
           </item>

@@ -4,14 +4,30 @@
 #include "gnmcore.h"
 
 
+//зачем нужен этот класс, если работа всё равно идёт со слоями внутреннего ДатаСорса?
+//если он необходим для встраивания в ОГР, тогда его надо реализовать как заглушку
 class OGRGnmLayer : public OGRLayer
 {
     private:
 
-     //хранит указатель на слой заданного формата, с которым будет производиться операция
+     //хранит указатель на слой заданного формата, с которым будет производиться операция???
      //OGRLayer *geoLayer;
 
     public:
+
+    /*
+    //обязательные
+    OGRGnmLayer (const char *pszFilename);
+    ~OGRGnmLayer ();
+    void ResetReading ();
+    OGRFeature *GetNextFeature ();
+    OGRFeatureDefn *GetLayerDefn ();
+    int TestCapability (const char *);
+
+    //дополнительные, которые надо реализовать
+    OGRErr SetFeature (OGRFeature *poFeature);
+    OGRErr CreateFeature (OGRFeature *poFeature);
+    */
 
 };
 
@@ -53,34 +69,36 @@ class OGRGnmDataSource : public OGRDataSource
      // - перед этим смотрит правила соединения
      // - после этого смотрит правила поведения
      // - после этого смотрит правила влияния
-     //NErr connect(long id1, long id2);
+     //NErr connect(long nGFID1, long nGFID2);
 
      //разъединяет два объекта (только при изменении правил)
      // - после этого смотрит правила поведения
      // - после этого смотрит правила влияния
-     //void disconnect(long id1, long id2);
+     //void disconnect(long nGFID1, long nGFID2);
 
-    //здесь должны быть только те методы, которые объявлены в абстрактном OGRDataSource
+     //void blockFeature(long nGFID);
 
-     //новый слой создаётся в geoDataSrc, причём:
-     // - устанавливается уникальный id при помощи OGRFeature::SetFID()
-     // - добавляются поля по умолчанию (блокировка, направление)
-     //OGRLayer *CreateLayer(const char *pszName, OGRSpatialReference *poSpatialRef = NULL,
-                           //OGRwkbGeometryType eGType = wkbUnknown,
-                           //char ** papszOptions = NULL);
+     //void unblockFeature(long nGFID);
 
-     //OGRErr SyncToDisk();
+     //void setFeatureDirection(long nGFID, char direction);
 
-     //OGRLayer *ExecuteSQL(const char *pszStatement, OGRGeometry *poSpatialFilter,
-                            //const char *pszDialect);
+//обязательные-----------------------------
+     const char *GetName ();
 
-     const char *GetName();
+     int GetLayerCount ();
 
-     int GetLayerCount();
+     OGRLayer *GetLayer (int nLayer);
 
-     OGRLayer *GetLayer(int nLayer);
+     int TestCapability (const char *);
+//------------------------------------------
 
-     int TestCapability(const char *);
+//дополнительно-----------------------------
+     OGRLayer *GetLayerByName (const char *name);
+
+     OGRLayer *CreateLayer 	(const char *pszName, OGRSpatialReference *poSpatialRef,
+                             OGRwkbGeometryType eGType, char **papszOptions);
+//------------------------------------------
+
 };
 
 
@@ -91,8 +109,6 @@ class OGRGnmDriver : public OGRSFDriver
      ~OGRGnmDriver();
 
      const char *GetName();
-
-     OGRDataSource *Open(const char *pszFilename, int bUpdate, char **papszOptions);
 
      OGRDataSource *Open(const char *pszFilename, int bUpdate);
 
