@@ -1,6 +1,10 @@
 #include "ogr_gnm.h"
 
 
+/************************************************************************/
+/*                       Open an existing data source                   */
+/************************************************************************/
+
 NErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papszOptions)
 {
     // TUTORIAL: Note that Open() methods should try and determine that a file isn't
@@ -14,6 +18,12 @@ NErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papszOp
     geoDataSrc = OGRSFDriverRegistrar::Open(pszFilename, TRUE);
     if(geoDataSrc == NULL) return NERR_ANY;
 
+    // Fill the papoLayers array with pointers to specific format layers.
+    for (int i = 0; i < geoDataSrc->GetLayerCount(); i++)
+    {
+        this->addLayer(geoDataSrc->GetLayer(i));
+    }
+
 //зачем это здесь, если это достаётся из слоёв, когда надо, в коде вызова?
     // TODO: Open table network_meta.
     // TODO: Read SRS and network format version.
@@ -22,10 +32,15 @@ NErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papszOp
 }
 
 
+/************************************************************************/
+/*                       Create new data source                         */
+/************************************************************************/
+
 NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 {
     // Open data source with given format.
 
+    // TODO: get the driverName from papszOptions
     const char *driverName = "ESRI Shapefile";
     OGRSFDriver* geoDriver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName(driverName);
     // TODO: replace NERR_ANY with the specific error code.
@@ -38,7 +53,9 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     OGRLayer *poLayer;
     OGRFeature *poFeature;
 
-    // Create table network_meta.
+/* ------------------------------------------------------------------ */
+/*                      Create table network_meta.                    */
+/* ------------------------------------------------------------------ */
 
     poLayer = this->geoDataSrc->CreateLayer("network_meta", NULL, wkbNone, NULL);
     if (poLayer == NULL) return NERR_ANY;
@@ -62,7 +79,11 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
     OGRFeature::DestroyFeature(poFeature);
 
-    // Create table network_graph.
+    this->addLayer(poLayer);
+
+/* ------------------------------------------------------------------ */
+/*                  Create table network_graph.                       */
+/* ------------------------------------------------------------------ */
 
     poLayer = this->geoDataSrc->CreateLayer("network_graph", NULL, wkbNone, NULL);
     if (poLayer == NULL) return NERR_ANY;
@@ -78,7 +99,11 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     poField = new OGRFieldDefn("weight", OFTInteger);
     if (poLayer->CreateField(poField) != OGRERR_NONE) return NERR_ANY;
 
-    // Create table network_rules.
+    this->addLayer(poLayer);
+
+/* ------------------------------------------------------------------ */
+/*                   Create table network_rules.                      */
+/* ------------------------------------------------------------------ */
 
     poLayer = this->geoDataSrc->CreateLayer("network_rules", NULL, wkbNone, NULL);
     if (poLayer == NULL) return NERR_ANY;
@@ -88,17 +113,28 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 
     // TODO: Write default rules.
 
-    // Synchronize added layers with disk.
+    this->addLayer(poLayer);
+
+/* ------------------------------------------------------------------ */
+/*                   Synchronize changes with disk                    */
+/* ------------------------------------------------------------------ */
+
     if (geoDataSrc->SyncToDisk() != OGRERR_NONE) return NERR_ANY;
 
     return NERR_NONE;
 }
 
 
+/************************************************************************/
+/*                       Essential mathods                              */
+/************************************************************************/
+
 OGRGnmDataSource::OGRGnmDataSource()
 {
     pszName = NULL;
     geoDataSrc = NULL;
+    nLayers = 0;
+    papoLayers = NULL;
 }
 
 OGRGnmDataSource::~OGRGnmDataSource()
@@ -107,6 +143,10 @@ OGRGnmDataSource::~OGRGnmDataSource()
     // and what using CPLFree.
     CPLFree(pszName);
     CPLFree(geoDataSrc);
+
+    for(int i = 0; i < nLayers; i++)
+        delete papoLayers[i];
+    CPLFree(papoLayers);
 }
 
 
@@ -118,19 +158,34 @@ const char* OGRGnmDataSource::GetName()
 
 int OGRGnmDataSource::GetLayerCount()
 {
-    return this->geoDataSrc->GetLayerCount();
+    //return this->geoDataSrc->GetLayerCount();
+
+    return nLayers;
 }
 
 
-OGRLayer* OGRGnmDataSource::GetLayer(int index)
+OGRLayer* OGRGnmDataSource::GetLayer(int iLayer)
 {
-    return this->geoDataSrc->GetLayer(index);
+    //return this->geoDataSrc->GetLayer(index);
+
+    if(iLayer < 0 || iLayer >= nLayers) return NULL;
+    else return papoLayers[iLayer];
 }
 
 
 OGRLayer* OGRGnmDataSource::GetLayerByName(const char *name)
 {
-    return this->geoDataSrc->GetLayerByName(name);
+    //return this->geoDataSrc->GetLayerByName(name);
+
+    for (int i=0; i<nLayers; i++)
+    {
+        if (strcmp(papoLayers[i]->GetName(), name) == 0)
+        {
+            return papoLayers[i];
+        }
+    }
+
+    return NULL;
 }
 
 
@@ -139,6 +194,10 @@ int OGRGnmDataSource::TestCapability(const char *)
     return FALSE;
 }
 
+
+/************************************************************************/
+/*                       Create new layer in data source                */
+/************************************************************************/
 
 OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference *poSpatialRef,
                                         OGRwkbGeometryType eGType, char **papszOptions)
@@ -150,20 +209,47 @@ OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference
     // The list of types is about to be widen in future.
     if (eGType != wkbPoint && eGType != wkbLineString) return NULL;
 
-    OGRLayer *tempLayer;
-    tempLayer = this->geoDataSrc->CreateLayer(pszName, poSR, eGType, papszOptions);
-    if (tempLayer == NULL) return NULL;
+    OGRLayer *geoLayer;
+    geoLayer = this->geoDataSrc->CreateLayer(pszName, poSR, eGType, papszOptions);
+    if (geoLayer == NULL) return NULL;
 
     // Add obligatory fields to the new layer: blocking state and direction.
     OGRFieldDefn *oField;
     oField = new OGRFieldDefn("is_blocked", OFTInteger);
-    if(tempLayer->CreateField(oField) != OGRERR_NONE) return NULL;
+    if(geoLayer->CreateField(oField) != OGRERR_NONE) return NULL;
 
     oField = new OGRFieldDefn("direction", OFTInteger);
-    if(tempLayer->CreateField(oField) != OGRERR_NONE) return NULL;
+    if(geoLayer->CreateField(oField) != OGRERR_NONE) return NULL;
 
-    return tempLayer;
+    // Wrap a special format layer with our format and return it.
+    return addLayer(geoLayer);
 }
+
+
+/************************************************************************/
+/*                      Add new GnmLayer to the data source             */
+/************************************************************************/
+
+OGRGnmLayer* OGRGnmDataSource::addLayer(OGRLayer *layer)
+{
+    // TODO: check if nLayers has reached maximum.
+
+    // Add a pointer to the general array of OGRGnmLayer pointers,
+    // where each of them stores a pointer to the OGRLayer of
+    // special format.
+    nLayers++;
+    papoLayers = (OGRGnmLayer **)
+            CPLRealloc(papoLayers, sizeof(OGRGnmLayer *) * (nLayers));
+    //papoLayers[nLayers - 1] = layer;
+    papoLayers[nLayers - 1] = new OGRGnmLayer(layer);
+
+    return papoLayers[nLayers - 1];
+}
+
+
+
+
+
 
 
 

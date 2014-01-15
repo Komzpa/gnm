@@ -53,13 +53,6 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="Line" name="line">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QPushButton" name="pushButton_4">
             <property name="maximumSize">
              <size>
@@ -82,7 +75,14 @@
           <item>
            <widget class="QPushButton" name="pushButton_2">
             <property name="text">
-             <string>add test layer with geometry objects</string>
+             <string>add test user layer</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_3">
+            <property name="text">
+             <string>add geometry object to the new layer</string>
             </property>
            </widget>
           </item>

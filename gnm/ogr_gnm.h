@@ -4,20 +4,21 @@
 #include "gnmcore.h"
 
 
-//зачем нужен этот класс, если работа всё равно идёт со слоями внутреннего ДатаСорса?
-//если он необходим для встраивания в ОГР, тогда его надо реализовать как заглушку
+//реализация этого класса нужна для того, чтобы перехватывать методы по
+//созданию объектов в слоях
+//Собственно, этот класс нужен, чтобы перехватить SetFeature и CreateFeature
 class OGRGnmLayer : public OGRLayer
 {
     private:
 
-     //хранит указатель на слой заданного формата, с которым будет производиться операция???
-     //OGRLayer *geoLayer;
+     //хранит указатель на слой заданного формата, с которым будет
+     //производиться все операции
+     OGRLayer *geoLayer;
 
     public:
 
-    /*
     //обязательные
-    OGRGnmLayer (const char *pszFilename);
+    OGRGnmLayer (OGRLayer *mainLayer);
     ~OGRGnmLayer ();
     void ResetReading ();
     OGRFeature *GetNextFeature ();
@@ -27,7 +28,6 @@ class OGRGnmLayer : public OGRLayer
     //дополнительные, которые надо реализовать
     OGRErr SetFeature (OGRFeature *poFeature);
     OGRErr CreateFeature (OGRFeature *poFeature);
-    */
 
 };
 
@@ -35,6 +35,9 @@ class OGRGnmLayer : public OGRLayer
 class OGRGnmDataSource : public OGRDataSource
 {
     private:
+
+     OGRGnmLayer **papoLayers;
+     int nLayers;
 
      //имя данного источника данных
      char *pszName;
@@ -61,9 +64,12 @@ class OGRGnmDataSource : public OGRDataSource
      OGRGnmDataSource();
      ~OGRGnmDataSource();
 
+//свои ------------------------------
      NErr open(const char *pszFilename, int bUpdate, char **papszOptions);
 
      NErr create(const char *pszFilename, char **papszOptions);
+
+     OGRGnmLayer *addLayer(OGRLayer *layer);
 
      //соединяет два объекта, добавляя связи в массив, причём
      // - перед этим смотрит правила соединения
@@ -81,13 +87,14 @@ class OGRGnmDataSource : public OGRDataSource
      //void unblockFeature(long nGFID);
 
      //void setFeatureDirection(long nGFID, char direction);
+//-----------------------------------------
 
 //обязательные-----------------------------
      const char *GetName ();
 
      int GetLayerCount ();
 
-     OGRLayer *GetLayer (int nLayer);
+     OGRLayer *GetLayer (int iLayer);
 
      int TestCapability (const char *);
 //------------------------------------------

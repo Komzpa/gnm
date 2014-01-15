@@ -28,7 +28,11 @@ void Widget::on_pushButton_4_clicked()
 
     OGRSFDriver *dr = new OGRGnmDriver();
 
-    dr->CreateDataSource("..\\..\\temp",NULL); //указываем только директорию для шейпа
+    OGRDataSource *ds = dr->CreateDataSource("..\\..\\temp",NULL); //указываем только директорию для шейпа
+
+    if (ds == NULL) emit toLog(QString("[error] Can not create data source"));
+
+    emit toLog(QString("[info] Data source has been successfully created"));
 }
 
 
@@ -69,7 +73,7 @@ void Widget::on_pushButton_clicked()
     while( (poFeature = poLayer->GetNextFeature()) != NULL )
     {
         emit toLog("[output] Network metadata: ");
-        emit toLog(QString(poFeature->GetFieldAsString(0)) + QString(" ") + QString(poFeature->GetFieldAsString(1)));
+        emit toLog(QString(poFeature->GetFieldAsString(0)) + QString(" = ") + QString(poFeature->GetFieldAsString(1)));
     }
 }
 
@@ -111,6 +115,7 @@ void Widget::on_pushButton_2_clicked()
         return;
     }
 
+/*
     //добавляем объекты с геометрией
     for (int i=0; i<3; i++)
     {
@@ -131,14 +136,20 @@ void Widget::on_pushButton_2_clicked()
 
          OGRFeature::DestroyFeature(poFeature);
     }
-    poDS->SyncToDisk();
+    emit toLog(QString("[info] Features added to the new layer successfully"));
+    if (poDS->SyncToDisk() != OGRERR_NONE);
+    {
+        emit toLog(QString("[error] Failed to write to disk"));
+    }
+    emit toLog(QString("[info] Features have been successfully written"));
     OGRDataSource::DestroyDataSource( poDS );
-    emit toLog(QString("[info] Features added successfully to the new layer"));
-
+*/
 }
 
 
-
+void Widget::on_pushButton_3_clicked()
+{
+}
 
 
 
