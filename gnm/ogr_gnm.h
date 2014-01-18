@@ -3,6 +3,13 @@
 
 #include "gnmcore.h"
 
+#define GNM_FEATURE_BLOCKED 1
+#define GNM_FEATURE_UNBLOCKED 0
+
+#define GNM_FEATURE_STRAIGHT_DIRECTION 1
+#define GNM_FEATURE_REVERSE_DIRECTION 0
+#define GNM_FEATURE_DOUBLE_DIRECTION 2
+
 
 //реализация этого класса нужна для того, чтобы перехватывать методы по
 //созданию объектов в слоях
@@ -26,6 +33,7 @@ class OGRGnmLayer : public OGRLayer
     int TestCapability (const char *);
 
     //дополнительные, которые надо реализовать
+    OGRErr CreateField (OGRFieldDefn *poField, int bApproxOK);
     OGRErr SetFeature (OGRFeature *poFeature);
     OGRErr CreateFeature (OGRFeature *poFeature);
 
@@ -36,6 +44,7 @@ class OGRGnmDataSource : public OGRDataSource
 {
     private:
 
+     //массив указателей на собственные слои, где каждый слой содержит указатель на среальный слой
      OGRGnmLayer **papoLayers;
      int nLayers;
 
@@ -104,6 +113,8 @@ class OGRGnmDataSource : public OGRDataSource
 
      OGRLayer *CreateLayer 	(const char *pszName, OGRSpatialReference *poSpatialRef,
                              OGRwkbGeometryType eGType, char **papszOptions);
+
+     OGRErr SyncToDisk ();
 //------------------------------------------
 
 };

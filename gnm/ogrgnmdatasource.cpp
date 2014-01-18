@@ -99,6 +99,17 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     poField = new OGRFieldDefn("weight", OFTInteger);
     if (poLayer->CreateField(poField) != OGRERR_NONE) return NERR_ANY;
 
+    /*
+    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+    poFeature->SetField("id", 111);
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
+    OGRFeature::DestroyFeature(poFeature);
+    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+    poFeature->SetField("weight", 222);
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
+    OGRFeature::DestroyFeature(poFeature);
+    */
+
     this->addLayer(poLayer);
 
 /* ------------------------------------------------------------------ */
@@ -108,10 +119,16 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     poLayer = this->geoDataSrc->CreateLayer("network_rules", NULL, wkbNone, NULL);
     if (poLayer == NULL) return NERR_ANY;
 
-    poField = new OGRFieldDefn("connection_rules", OFTString);
+    poField = new OGRFieldDefn("con_rules", OFTString);
     if (poLayer->CreateField(poField) != OGRERR_NONE) return NERR_ANY;
 
     // TODO: Write default rules.
+    /*
+    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+    poFeature->SetField("con_rules", "CONNECT *");
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
+    OGRFeature::DestroyFeature(poFeature);
+    */
 
     this->addLayer(poLayer);
 
@@ -177,14 +194,22 @@ OGRLayer* OGRGnmDataSource::GetLayerByName(const char *name)
 {
     //return this->geoDataSrc->GetLayerByName(name);
 
+    const char *str;
+    //int nom;
+    //bool fl = false;
     for (int i=0; i<nLayers; i++)
     {
-        if (strcmp(papoLayers[i]->GetName(), name) == 0)
+        str = papoLayers[i]->GetName();
+        if (strcmp(str, name) == 0)
         {
             return papoLayers[i];
+            //nom = i;
+            //fl = true;
         }
     }
 
+    //if (fl == true) return papoLayers[nom];
+    //else return NULL;
     return NULL;
 }
 
@@ -192,6 +217,11 @@ OGRLayer* OGRGnmDataSource::GetLayerByName(const char *name)
 int OGRGnmDataSource::TestCapability(const char *)
 {
     return FALSE;
+}
+
+OGRErr OGRGnmDataSource::SyncToDisk()
+{
+    return geoDataSrc->SyncToDisk();
 }
 
 
@@ -223,6 +253,7 @@ OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference
 
     // Wrap a special format layer with our format and return it.
     return addLayer(geoLayer);
+    //return geoLayer;
 }
 
 
@@ -237,10 +268,11 @@ OGRGnmLayer* OGRGnmDataSource::addLayer(OGRLayer *layer)
     // Add a pointer to the general array of OGRGnmLayer pointers,
     // where each of them stores a pointer to the OGRLayer of
     // special format.
+
+
     nLayers++;
     papoLayers = (OGRGnmLayer **)
             CPLRealloc(papoLayers, sizeof(OGRGnmLayer *) * (nLayers));
-    //papoLayers[nLayers - 1] = layer;
     papoLayers[nLayers - 1] = new OGRGnmLayer(layer);
 
     return papoLayers[nLayers - 1];

@@ -8,7 +8,8 @@ OGRGnmLayer::OGRGnmLayer(OGRLayer *mainLayer)
 
 OGRGnmLayer::~OGRGnmLayer ()
 {
-    CPLFree(geoLayer);
+    //здесь нельзя удалять сам geoLayer, т.к. это только ещё одна ссылка на слой
+    //CPLFree(geoLayer);
 }
 
 void OGRGnmLayer::ResetReading ()
@@ -33,6 +34,16 @@ int OGRGnmLayer::TestCapability (const char *)
 
 
 /************************************************************************/
+/*                       Create new field                               */
+/************************************************************************/
+
+OGRErr OGRGnmLayer::CreateField(OGRFieldDefn *poField, int bApproxOK)
+{
+    return geoLayer->CreateField(poField, bApproxOK);
+}
+
+
+/************************************************************************/
 /*                       Rewrite existing feature                       */
 /************************************************************************/
 
@@ -51,14 +62,32 @@ OGRErr OGRGnmLayer::SetFeature (OGRFeature *poFeature)
 
 OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
 {
-    // TODO: check for obligatory attributes' values
-    // (if it is possible to set them this way).
+    // Check for obligatory attributes' correct values
 
-    // TODO: set feature unic ID via OGRLayer::GetFIDColumn()
+    int temp;
 
-    // TODO: set obligatory attributes' initial values.
+    temp = poFeature->GetFieldAsInteger("is_blocked");
+    if (temp != GNM_FEATURE_BLOCKED
+     && temp != GNM_FEATURE_UNBLOCKED)
+    {
+        // Set initial value if incoming value is incorrect.
+        poFeature->SetField("is_blocked",GNM_FEATURE_UNBLOCKED);
+    }
 
-    return OGRERR_NONE;
+    temp = poFeature->GetFieldAsInteger("direction");
+    if (temp != GNM_FEATURE_STRAIGHT_DIRECTION
+     && temp != GNM_FEATURE_REVERSE_DIRECTION
+     && temp != GNM_FEATURE_DOUBLE_DIRECTION)
+    {
+        // Set initial value if incoming value is incorrect.
+        poFeature->SetField("direction",GNM_FEATURE_DOUBLE_DIRECTION);
+    }
+
+    // TODO: set feature unic ID via OGRLayer::GetFIDColumn() or OGRFeature::SetFID()
+
+
+    // Create feature.
+    return geoLayer->CreateFeature(poFeature);
 }
 
 

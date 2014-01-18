@@ -75,10 +75,12 @@ void Widget::on_pushButton_clicked()
         emit toLog("[output] Network metadata: ");
         emit toLog(QString(poFeature->GetFieldAsString(0)) + QString(" = ") + QString(poFeature->GetFieldAsString(1)));
     }
+
+    OGRDataSource::DestroyDataSource( poDS );
 }
 
 
-//добавляем новый слой с геометрией + добавляем в него объекты
+//добавляем новый слой с геометрией
 void Widget::on_pushButton_2_clicked()
 {
     OGRRegisterAll();
@@ -86,7 +88,7 @@ void Widget::on_pushButton_2_clicked()
     OGRDataSource *poDS;
     const char *str;
     str = "..\\..\\temp";
-    //TEMP: аналогично открытию
+    //аналогично открытию
     OGRSFDriver *dr = new OGRGnmDriver();
     poDS = dr->Open(str,TRUE);
     if( poDS == NULL )
@@ -114,9 +116,12 @@ void Widget::on_pushButton_2_clicked()
         emit toLog(QString("[error] Can not create field"));
         return;
     }
+    emit toLog(QString("[info] test_point_layer has been successfully created"));
 
-/*
+
+
     //добавляем объекты с геометрией
+    //если внутри кода кнопки on_pushButton_2_clicked, то работает
     for (int i=0; i<3; i++)
     {
         OGRFeature *poFeature;
@@ -133,22 +138,81 @@ void Widget::on_pushButton_2_clicked()
             emit toLog(QString("[error] Can not create geometry feature"));
             return;
         }
-
          OGRFeature::DestroyFeature(poFeature);
     }
     emit toLog(QString("[info] Features added to the new layer successfully"));
-    if (poDS->SyncToDisk() != OGRERR_NONE);
+
+    if (poDS->SyncToDisk() != OGRERR_NONE)
     {
-        emit toLog(QString("[error] Failed to write to disk"));
+        emit toLog(QString("[error] Failed to write to disk: "));
+        return;
     }
     emit toLog(QString("[info] Features have been successfully written"));
-    OGRDataSource::DestroyDataSource( poDS );
-*/
+
+
+
+    OGRDataSource::DestroyDataSource(poDS);
 }
 
 
+
+//добавляем в тестовый слой объекты
 void Widget::on_pushButton_3_clicked()
 {
+    //если раскоментить следующий код (аналогичен предыдущей кнопке),
+    //то объекты не добавятся в слой. Разобраться, что это за баг.
+
+    /*
+    OGRRegisterAll();
+
+    OGRDataSource *poDS;
+    const char *str;
+    str = "..\\..\\temp";
+    OGRSFDriver *dr = new OGRGnmDriver();
+    poDS = dr->Open(str,TRUE);
+    if(poDS == NULL)
+    {
+        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        return;
+    }
+
+    OGRLayer *poLayer;
+    poLayer = poDS->GetLayerByName("test_point_layer");
+    if (poLayer == NULL)
+    {
+        emit toLog(QString("[error] Can not open layer (test_point_layer)"));
+        return;
+    }
+
+        //добавляем объекты с геометрией
+        for (int i=0; i<3; i++)
+        {
+            OGRFeature *poFeature;
+            poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+            poFeature->SetField("test_field", "test string");
+            poFeature->SetField("is_blocked", 99);
+            poFeature->SetField("direction", 55);
+            OGRPoint pt;
+            pt.setX(i * 5.0);
+            pt.setY(0.0);
+            poFeature->SetGeometry(&pt);
+            if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+            {
+                emit toLog(QString("[error] Can not create geometry feature"));
+                return;
+            }
+             OGRFeature::DestroyFeature(poFeature);
+        }
+        emit toLog(QString("[info] Features added to the new layer successfully"));
+
+        if (poDS->SyncToDisk() != OGRERR_NONE)
+        {
+            emit toLog(QString("[error] Failed to write to disk: "));
+            return;
+        }
+        emit toLog(QString("[info] Features have been successfully written"));
+        OGRDataSource::DestroyDataSource( poDS );
+*/
 }
 
 
