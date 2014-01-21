@@ -21,7 +21,9 @@ Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
 }
 
 
-//создаём Дата Сорс
+/* ------------------------------------------------------------------ */
+/*        Создаём модель (Дата сорс) со слоями по умолчанию           */
+/* ------------------------------------------------------------------ */
 void Widget::on_pushButton_4_clicked()
 {
     OGRRegisterAll(); //Путь: \ogr\ogrsf_frmts\generic\ogrsfdriverregistrar.cpp
@@ -30,13 +32,19 @@ void Widget::on_pushButton_4_clicked()
 
     OGRDataSource *ds = dr->CreateDataSource("..\\..\\temp",NULL); //указываем только директорию для шейпа
 
-    if (ds == NULL) emit toLog(QString("[error] Can not create data source"));
+    if (ds == NULL)
+    {
+        emit toLog(QString("[error] Can not create data source"));
+        return;
+    }
 
     emit toLog(QString("[info] Data source has been successfully created"));
 }
 
 
-//читаем с ДатаСорса (тестим)
+/* ------------------------------------------------------------------ */
+/*                             Читаем модель                          */
+/* ------------------------------------------------------------------ */
 void Widget::on_pushButton_clicked()
 {
     const char *str;
@@ -48,10 +56,10 @@ void Widget::on_pushButton_clicked()
     OGRDataSource *poDS;
     str = "..\\..\\temp";
     //poDS = OGRSFDriverRegistrar::Open(str, FALSE); //пока так сделать нельзя, драйвер не зареган
-    //TEMP (вместо OGRSFDriverRegistrar) ---------------------------------
+    //(вместо OGRSFDriverRegistrar) -------------
     OGRSFDriver *dr = new OGRGnmDriver();
     poDS = dr->Open(str,FALSE);
-    //--------------------------------------------------------------------
+    //-------------------------------------------
     if( poDS == NULL )
     {
         emit toLog(QString("[error] Can not open data source ") + QString(str));
@@ -80,7 +88,9 @@ void Widget::on_pushButton_clicked()
 }
 
 
-//добавляем новый слой с геометрией
+/* ------------------------------------------------------------------ */
+/*                          Пишем в модель                            */
+/* ------------------------------------------------------------------ */
 void Widget::on_pushButton_2_clicked()
 {
     OGRRegisterAll();
@@ -126,9 +136,7 @@ void Widget::on_pushButton_2_clicked()
     {
         OGRFeature *poFeature;
         poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-        poFeature->SetField("test_field", "test string");
-        poFeature->SetField("is_blocked", 99);
-        poFeature->SetField("direction", 55);
+        poFeature->SetField("test_field", "aaaaaa");
         OGRPoint pt;
         pt.setX(i * 5.0);
         pt.setY(0.0);
@@ -138,7 +146,7 @@ void Widget::on_pushButton_2_clicked()
             emit toLog(QString("[error] Can not create geometry feature"));
             return;
         }
-         OGRFeature::DestroyFeature(poFeature);
+        OGRFeature::DestroyFeature(poFeature);
     }
     emit toLog(QString("[info] Features added to the new layer successfully"));
 

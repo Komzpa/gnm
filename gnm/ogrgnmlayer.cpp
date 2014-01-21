@@ -1,9 +1,15 @@
 
 #include "ogr_gnm.h"
 
-OGRGnmLayer::OGRGnmLayer(OGRLayer *mainLayer)
+//long OGRGnmLayer::idCounter = 0;
+
+//OGRLayer* OGRGnmLayer::idLayer =
+
+
+OGRGnmLayer::OGRGnmLayer(OGRLayer *mainLayer, OGRGnmDataSource *parentDataSource)
 {
     geoLayer = mainLayer;
+    parentDataSrc = parentDataSource;
 }
 
 OGRGnmLayer::~OGRGnmLayer ()
@@ -83,8 +89,22 @@ OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
         poFeature->SetField("direction",GNM_FEATURE_DOUBLE_DIRECTION);
     }
 
-    // TODO: set feature unic ID via OGRLayer::GetFIDColumn() or OGRFeature::SetFID()
+    // Set feature unique ID.
+     //OGRErr err = poFeature->SetFID(idCounter);
+     //if (err != OGRERR_NONE) return err;
+     //idCounter++;
+    long id = parentDataSrc->getNextFeatureId();
+    poFeature->SetFID(id);
 
+    // Add feature's id and layer name to the id ownership table.
+    OGRLayer *poLr = parentDataSrc->getInnerDataSource()->GetLayerByName("network_ids");
+    if (poLr == NULL) return OGRERR_FAILURE;
+    OGRFeature *poFt;
+    poFt = OGRFeature::CreateFeature(poLr->GetLayerDefn());
+    const char* layerName = this->GetName();
+    poFt->SetField("layer_name", layerName);
+    poFt->SetFID(id);
+    if(poLr->CreateFeature(poFt) != OGRERR_NONE) return OGRERR_FAILURE;
 
     // Create feature.
     return geoLayer->CreateFeature(poFeature);

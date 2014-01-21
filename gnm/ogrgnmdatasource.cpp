@@ -12,21 +12,26 @@ NErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papszOp
     // invoked with files of the wrong format before the correct driver is reached.
 
     // Open data source with the given format.
-
     // TUTORIAL: If this method fails, CPLGetLastErrorMsg() can be used to check
     // if there is an error message explaining why.
     geoDataSrc = OGRSFDriverRegistrar::Open(pszFilename, TRUE);
     if(geoDataSrc == NULL) return NERR_ANY;
 
+    int count = geoDataSrc->GetLayerCount();
+
     // Fill the papoLayers array with pointers to specific format layers.
-    for (int i = 0; i < geoDataSrc->GetLayerCount(); i++)
+    for (int i = 0; i < count; i++)
     {
-        this->addLayer(geoDataSrc->GetLayer(i));
+        this->wrapLayer(geoDataSrc->GetLayer(i));
     }
 
-//зачем это здесь, если это достаётся из слоёв, когда надо, в коде вызова?
-    // TODO: Open table network_meta.
-    // TODO: Read SRS and network format version.
+    // Get the last value of id_counter.
+    OGRLayer *poLayer = geoDataSrc->GetLayerByName("network_meta");
+    if (poLayer == NULL) return NERR_ANY;
+    OGRFeature *poFeature = poLayer->GetFeature(GNM_METADATA_ID_COUNTER);
+    if (poFeature == NULL) return NERR_ANY;
+    const char *temp = poFeature->GetFieldAsString("value");
+    idCounter = atol(temp);
 
     return NERR_NONE;
 }
@@ -38,9 +43,8 @@ NErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papszOp
 
 NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 {
-    // Open data source with given format.
-
-    // TODO: get the driverName from papszOptions
+    // Create data source with given format.
+    // TODO: get the driverName from papszOptions.
     const char *driverName = "ESRI Shapefile";
     OGRSFDriver* geoDriver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName(driverName);
     // TODO: replace NERR_ANY with the specific error code.
@@ -70,16 +74,26 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "Format version");
     poFeature->SetField("value", "1.0");
+    poFeature->SetFID(GNM_METADATA_FORMAT_VERSION); // We set FID here in order to get this meta-feature with OGRLayer::getFeature().
     if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
     OGRFeature::DestroyFeature(poFeature);
 
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "SRS");
     poFeature->SetField("value", "WGS 84");
+    poFeature->SetFID(GNM_METADATA_SRS);
     if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
     OGRFeature::DestroyFeature(poFeature);
 
-    this->addLayer(poLayer);
+    // Write unique feature id counter.
+    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+    poFeature->SetField("param_name", "id_counter");
+    poFeature->SetField("value", "0");
+    poFeature->SetFID(GNM_METADATA_ID_COUNTER);
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
+    OGRFeature::DestroyFeature(poFeature);
+
+    this->wrapLayer(poLayer);
 
 /* ------------------------------------------------------------------ */
 /*                  Create table network_graph.                       */
@@ -99,18 +113,7 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     poField = new OGRFieldDefn("weight", OFTInteger);
     if (poLayer->CreateField(poField) != OGRERR_NONE) return NERR_ANY;
 
-    /*
-    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-    poFeature->SetField("id", 111);
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
-    OGRFeature::DestroyFeature(poFeature);
-    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-    poFeature->SetField("weight", 222);
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
-    OGRFeature::DestroyFeature(poFeature);
-    */
-
-    this->addLayer(poLayer);
+    this->wrapLayer(poLayer);
 
 /* ------------------------------------------------------------------ */
 /*                   Create table network_rules.                      */
@@ -123,14 +126,40 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     if (poLayer->CreateField(poField) != OGRERR_NONE) return NERR_ANY;
 
     // TODO: Write default rules.
-    /*
-    poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-    poFeature->SetField("con_rules", "CONNECT *");
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
-    OGRFeature::DestroyFeature(poFeature);
-    */
 
-    this->addLayer(poLayer);
+    this->wrapLayer(poLayer);
+
+/* ------------------------------------------------------------------ */
+/*                  Create table network_ids.                         */
+/* ------------------------------------------------------------------ */
+    char** papszCrOptions = NULL;
+    papszCrOptions = CSLAddNameValue(papszCrOptions, "SHPT", "NULL");
+    poLayer = this->geoDataSrc->CreateLayer("network_ids", NULL, wkbNone, papszCrOptions);
+    CSLDestroy(papszCrOptions);
+    if (poLayer == NULL) return NERR_ANY;
+
+    poField = new OGRFieldDefn("layer_name", OFTString);
+    if (poLayer->CreateField(poField) != OGRERR_NONE) return NERR_ANY;
+
+    //--------- test ----------
+    //poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+    //poFeature->SetField("layer_name", "aaa111");
+    //if (poFeature->SetFID(this->getNextFeatureId()) != OGRERR_NONE) return NERR_ANY;
+    //if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return NERR_ANY;
+    //OGRFeature::DestroyFeature(poFeature);
+    //-------------------------
+
+    this->wrapLayer(poLayer);
+
+    //OGRErr err = poLayer->SyncToDisk();
+
+/* ------------------------------------------------------------------ */
+/*                       Set other parameters                         */
+/* ------------------------------------------------------------------ */
+
+    // Initialize layers' id counter from begining. Here is not nessesery
+    // to read it from table network_meta.
+    idCounter = 0;
 
 /* ------------------------------------------------------------------ */
 /*                   Synchronize changes with disk                    */
@@ -138,7 +167,61 @@ NErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 
     if (geoDataSrc->SyncToDisk() != OGRERR_NONE) return NERR_ANY;
 
+    // TODO: understand, how to flush pending changes to disk:
+    // via DestroyDataSource() or reimplementing SyncToDisk() for
+    // each layer.
+    OGRDataSource::DestroyDataSource(geoDataSrc);
+
     return NERR_NONE;
+}
+
+
+
+OGRFeature* OGRGnmDataSource::getFeature(long nGFID)
+{
+    /*
+    // Determine the layer which holds the feature with this unque ID.
+    OGRLayer *poLayer;
+    poLayer = this->GetLayerByName("network_ids");
+    if (poLayer == NULL) return NULL;
+
+    poLayer->ResetReading();
+    OGRFeature *poFeature;
+    poFeature = poLayer->GetFeature(nGFID);
+    if (poFeature == NULL) return NULL;
+
+    const char *layerName = "";
+    layerName = poFeature->GetFieldAsString("layer_name");
+    if (layerName == "") return NULL;
+    OGRFeature::DestroyFeature(poFeature);
+
+    // Get the final feature from this layer.
+    OGRLayer *poTargetLayer;
+    poTargetLayer = this->GetLayerByName(layerName);
+    if (poTargetLayer == NULL) return NULL;
+
+    poTargetLayer->ResetReading();
+    OGRFeature *poTargetFeature;
+    poTargetFeature = poTargetLayer->GetFeature(nGFID);
+    if (poTargetFeature == NULL) return NULL;
+
+    return poTargetFeature;
+    */
+
+    return NULL;
+}
+
+
+long OGRGnmDataSource::getNextFeatureId()
+{
+    long res = idCounter;
+    idCounter++;
+    return res;
+}
+
+OGRDataSource* OGRGnmDataSource::getInnerDataSource()
+{
+    return geoDataSrc;
 }
 
 
@@ -152,6 +235,8 @@ OGRGnmDataSource::OGRGnmDataSource()
     geoDataSrc = NULL;
     nLayers = 0;
     papoLayers = NULL;
+    //idCounter здесь инициализировать нельзя! Только в открытии/создании
+    //idCounter = 0;
 }
 
 OGRGnmDataSource::~OGRGnmDataSource()
@@ -159,11 +244,13 @@ OGRGnmDataSource::~OGRGnmDataSource()
     // TODO: understand what should we delete using delete statement,
     // and what using CPLFree.
     CPLFree(pszName);
-    CPLFree(geoDataSrc);
+    //CPLFree(geoDataSrc);
 
     for(int i = 0; i < nLayers; i++)
         delete papoLayers[i];
     CPLFree(papoLayers);
+
+    OGRDataSource::DestroyDataSource(geoDataSrc);
 }
 
 
@@ -219,6 +306,7 @@ int OGRGnmDataSource::TestCapability(const char *)
     return FALSE;
 }
 
+
 OGRErr OGRGnmDataSource::SyncToDisk()
 {
     return geoDataSrc->SyncToDisk();
@@ -252,7 +340,7 @@ OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference
     if(geoLayer->CreateField(oField) != OGRERR_NONE) return NULL;
 
     // Wrap a special format layer with our format and return it.
-    return addLayer(geoLayer);
+    return wrapLayer(geoLayer);
     //return geoLayer;
 }
 
@@ -261,7 +349,7 @@ OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference
 /*                      Add new GnmLayer to the data source             */
 /************************************************************************/
 
-OGRGnmLayer* OGRGnmDataSource::addLayer(OGRLayer *layer)
+OGRGnmLayer* OGRGnmDataSource::wrapLayer(OGRLayer *layer)
 {
     // TODO: check if nLayers has reached maximum.
 
@@ -269,11 +357,10 @@ OGRGnmLayer* OGRGnmDataSource::addLayer(OGRLayer *layer)
     // where each of them stores a pointer to the OGRLayer of
     // special format.
 
-
     nLayers++;
     papoLayers = (OGRGnmLayer **)
             CPLRealloc(papoLayers, sizeof(OGRGnmLayer *) * (nLayers));
-    papoLayers[nLayers - 1] = new OGRGnmLayer(layer);
+    papoLayers[nLayers - 1] = new OGRGnmLayer(layer, this);
 
     return papoLayers[nLayers - 1];
 }

@@ -10,6 +10,12 @@
 #define GNM_FEATURE_REVERSE_DIRECTION 0
 #define GNM_FEATURE_DOUBLE_DIRECTION 2
 
+#define GNM_METADATA_FORMAT_VERSION 0
+#define GNM_METADATA_SRS 1
+#define GNM_METADATA_ID_COUNTER 2
+
+
+class OGRGnmDataSource;
 
 //реализация этого класса нужна для того, чтобы перехватывать методы по
 //созданию объектов в слоях
@@ -18,25 +24,31 @@ class OGRGnmLayer : public OGRLayer
 {
     private:
 
+     //родительский ДатаСорс
+     OGRGnmDataSource *parentDataSrc;
+
      //хранит указатель на слой заданного формата, с которым будет
      //производиться все операции
      OGRLayer *geoLayer;
 
+     //static long idCounter;
+
+     //static OGRLayer *idLayer;
+
     public:
 
     //обязательные
-    OGRGnmLayer (OGRLayer *mainLayer);
+    OGRGnmLayer (OGRLayer *mainLayer, OGRGnmDataSource *parentDataSource);
     ~OGRGnmLayer ();
     void ResetReading ();
     OGRFeature *GetNextFeature ();
     OGRFeatureDefn *GetLayerDefn ();
     int TestCapability (const char *);
 
-    //дополнительные, которые надо реализовать
+    //дополнительные
     OGRErr CreateField (OGRFieldDefn *poField, int bApproxOK);
     OGRErr SetFeature (OGRFeature *poFeature);
     OGRErr CreateFeature (OGRFeature *poFeature);
-
 };
 
 
@@ -44,24 +56,18 @@ class OGRGnmDataSource : public OGRDataSource
 {
     private:
 
-     //массив указателей на собственные слои, где каждый слой содержит указатель на среальный слой
-     OGRGnmLayer **papoLayers;
-     int nLayers;
-
      //имя данного источника данных
      char *pszName;
+
+     //массив указателей на собственные слои, где каждый слой содержит указатель на реальный слой
+     OGRGnmLayer **papoLayers;
+     int nLayers;
 
      //основной ДатаСорс, хранящий гео данные в заданном формате
      OGRDataSource* geoDataSrc;
 
-     //счётчик последнего выданного id объекту
-     //long idCounter;
-
-     //метод, выдающий новый глобальный id объекту исходя из счётчика
-     //long getNewId();
-
-     //таблица связей объектов (граф), где элементом со связями представлен каждый объект сети
-     //std::vector<NElement> graph;
+     //счётчик выданных id объектам
+     long idCounter;
 
     public:
 
@@ -70,15 +76,22 @@ class OGRGnmDataSource : public OGRDataSource
      //The Open() will take care of actually attaching it to a file.
      //The destructor is responsible for orderly cleanup of layers.
 
-     OGRGnmDataSource();
-     ~OGRGnmDataSource();
+     OGRGnmDataSource ();
+     ~OGRGnmDataSource ();
 
 //свои ------------------------------
-     NErr open(const char *pszFilename, int bUpdate, char **papszOptions);
+     NErr open (const char *pszFilename, int bUpdate, char **papszOptions);
 
-     NErr create(const char *pszFilename, char **papszOptions);
+     NErr create (const char *pszFilename, char **papszOptions);
 
-     OGRGnmLayer *addLayer(OGRLayer *layer);
+     OGRGnmLayer *wrapLayer (OGRLayer *layer);
+
+     OGRFeature *getFeature (long nGFID);
+
+     OGRDataSource *getInnerDataSource ();
+
+     //метод, выдающий новый глобальный id объекту исходя из счётчика
+     long getNextFeatureId ();
 
      //соединяет два объекта, добавляя связи в массив, причём
      // - перед этим смотрит правила соединения
