@@ -61,28 +61,35 @@
              </size>
             </property>
             <property name="text">
-             <string>create DataSource</string>
+             <string>create network</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="pushButton">
             <property name="text">
-             <string>read from DataSource</string>
+             <string>read network metadata</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_2">
             <property name="text">
-             <string>add test user layer</string>
+             <string>add test user table with geometry objects</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_3">
             <property name="text">
-             <string>add geometry object to the new layer</string>
+             <string>read feature from network</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_5">
+            <property name="text">
+             <string>delete network</string>
             </property>
            </widget>
           </item>

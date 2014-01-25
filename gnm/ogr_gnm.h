@@ -1,7 +1,8 @@
 #ifndef OGR_GNM_H
 #define OGR_GNM_H
 
-#include "gnmcore.h"
+#include "ogrsf_frmts.h"
+
 
 #define GNM_FEATURE_BLOCKED 1
 #define GNM_FEATURE_UNBLOCKED 0
@@ -14,94 +15,125 @@
 #define GNM_METADATA_SRS 1
 #define GNM_METADATA_ID_COUNTER 2
 
+#define GNM_OPTION_DRIVER_NAME "drvname"
+
+
+// Available supported drivers. The list must end with NULL.
+static const char *GNMSupportedDrivers[] = {
+    "ESRI Shapefile",
+    "GeoJSON",
+    "PostgreSQL/PostGIS",
+    "SQLite",
+    NULL };
+
+// Names of all system layers. The list must end with NULL.
+static const char *GNMSystemLayers[] = {
+    "network_meta",
+    "network_graph",
+    "network_rules",
+    "network_ids",
+    NULL };
+
+// Count of GNMSystemLayers array's elements.
+static int GNMSystemLayersCount = 4;
+
 
 class OGRGnmDataSource;
 
-//реализация этого класса нужна для того, чтобы перехватывать методы по
-//созданию объектов в слоях
-//Собственно, этот класс нужен, чтобы перехватить SetFeature и CreateFeature
+
+/************************************************************************/
+/*                            OGRGnmLayer                               */
+/************************************************************************/
+//Behaves like a proxy to the real layer with geometry and attributes
 class OGRGnmLayer : public OGRLayer
 {
     private:
 
-     //родительский ДатаСорс
+     // Parent data source.
      OGRGnmDataSource *parentDataSrc;
 
-     //хранит указатель на слой заданного формата, с которым будет
-     //производиться все операции
+     // Pointer to the real layer.
      OGRLayer *geoLayer;
-
-     //static long idCounter;
-
-     //static OGRLayer *idLayer;
 
     public:
 
-    //обязательные
     OGRGnmLayer (OGRLayer *mainLayer, OGRGnmDataSource *parentDataSource);
-    ~OGRGnmLayer ();
-    void ResetReading ();
-    OGRFeature *GetNextFeature ();
-    OGRFeatureDefn *GetLayerDefn ();
-    int TestCapability (const char *);
 
-    //дополнительные
+    ~OGRGnmLayer ();
+
+//required----------------------------------------
+    void ResetReading ();
+
+    OGRFeature *GetNextFeature ();
+
+    OGRFeatureDefn *GetLayerDefn ();
+
+    int TestCapability (const char *);
+//------------------------------------------------
+
+//additional--------------------------------------
     OGRErr CreateField (OGRFieldDefn *poField, int bApproxOK);
+
     OGRErr SetFeature (OGRFeature *poFeature);
+
     OGRErr CreateFeature (OGRFeature *poFeature);
+//-------------------------------------------------
+
 };
 
 
+/************************************************************************/
+/*                            OGRGnmDataSource                          */
+/************************************************************************/
 class OGRGnmDataSource : public OGRDataSource
 {
     private:
 
-     //имя данного источника данных
+     // The name of this data source (not inner).
      char *pszName;
 
-     //массив указателей на собственные слои, где каждый слой содержит указатель на реальный слой
      OGRGnmLayer **papoLayers;
      int nLayers;
 
-     //основной ДатаСорс, хранящий гео данные в заданном формате
+     // Inner data source, which stores all layers in given format.
      OGRDataSource* geoDataSrc;
 
-     //счётчик выданных id объектам
      long idCounter;
 
     public:
 
-     //из туториала:
-     //The constructor is a simple initializer to a default state.
-     //The Open() will take care of actually attaching it to a file.
-     //The destructor is responsible for orderly cleanup of layers.
-
      OGRGnmDataSource ();
+
      ~OGRGnmDataSource ();
 
-//свои ------------------------------
-     NErr open (const char *pszFilename, int bUpdate, char **papszOptions);
+//new----------------------------------
+     // Open an existing data source.
+     OGRErr open (const char *pszFilename, int bUpdate, char **papszOptions);
 
-     NErr create (const char *pszFilename, char **papszOptions);
+     // Create new data source.
+     OGRErr create (const char *pszFilename, char **papszOptions);
 
+     // Wraps the OGRLayer layer with proxy OGRGnmLayer.
      OGRGnmLayer *wrapLayer (OGRLayer *layer);
 
+     // Delete the proxy.
+     void unwrapLayer (int iLayer);
+
+     // Get the feature from the whole data source.
      OGRFeature *getFeature (long nGFID);
 
+     // Returns geoDataSrc.
      OGRDataSource *getInnerDataSource ();
 
-     //метод, выдающий новый глобальный id объекту исходя из счётчика
+     // Returns true, if the given layer is one of the system layers.
+     // List of system layers is stored in GNMSystemLayers[].
+     bool isSystemLayer (int iLayer);
+
+     // Get next id for new feature.
      long getNextFeatureId ();
 
-     //соединяет два объекта, добавляя связи в массив, причём
-     // - перед этим смотрит правила соединения
-     // - после этого смотрит правила поведения
-     // - после этого смотрит правила влияния
      //NErr connect(long nGFID1, long nGFID2);
 
-     //разъединяет два объекта (только при изменении правил)
-     // - после этого смотрит правила поведения
-     // - после этого смотрит правила влияния
      //void disconnect(long nGFID1, long nGFID2);
 
      //void blockFeature(long nGFID);
@@ -111,7 +143,7 @@ class OGRGnmDataSource : public OGRDataSource
      //void setFeatureDirection(long nGFID, char direction);
 //-----------------------------------------
 
-//обязательные-----------------------------
+//required----------------------------------
      const char *GetName ();
 
      int GetLayerCount ();
@@ -121,18 +153,23 @@ class OGRGnmDataSource : public OGRDataSource
      int TestCapability (const char *);
 //------------------------------------------
 
-//дополнительно-----------------------------
+//additional--------------------------------
      OGRLayer *GetLayerByName (const char *name);
 
      OGRLayer *CreateLayer 	(const char *pszName, OGRSpatialReference *poSpatialRef,
                              OGRwkbGeometryType eGType, char **papszOptions);
 
      OGRErr SyncToDisk ();
+
+     OGRErr DeleteLayer (int iLayer);
 //------------------------------------------
 
 };
 
 
+/************************************************************************/
+/*                            OGRGnmDriver                              */
+/************************************************************************/
 class OGRGnmDriver : public OGRSFDriver
 {
     public:

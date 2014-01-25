@@ -15,22 +15,27 @@ Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
 {
     ui->setupUi(this);
 
-    //настриваем интерфейс
+    // Build an interface.
     connect(this,SIGNAL(toLog(QString)),this,SLOT(onToLog(QString)));
     ui->tabWidget->setTabText(0,QString::fromUtf8("log"));
 }
 
 
 /* ------------------------------------------------------------------ */
-/*        Создаём модель (Дата сорс) со слоями по умолчанию           */
+/*                             Create network                         */
 /* ------------------------------------------------------------------ */
 void Widget::on_pushButton_4_clicked()
 {
-    OGRRegisterAll(); //Путь: \ogr\ogrsf_frmts\generic\ogrsfdriverregistrar.cpp
+    OGRRegisterAll(); // ogr\ogrsf_frmts\generic\ogrsfdriverregistrar.cpp
 
     OGRSFDriver *dr = new OGRGnmDriver();
 
-    OGRDataSource *ds = dr->CreateDataSource("..\\..\\temp",NULL); //указываем только директорию для шейпа
+    // Selecting a directory and data source format.
+    char* pszName = "..\\..\\temp";
+    char** papszOptions = NULL;
+    papszOptions = CSLAddNameValue(papszOptions, GNM_OPTION_DRIVER_NAME, "ESRI Shapefile");
+    OGRDataSource *ds = dr->CreateDataSource(pszName, papszOptions);
+    CSLDestroy(papszOptions);
 
     if (ds == NULL)
     {
@@ -39,27 +44,27 @@ void Widget::on_pushButton_4_clicked()
     }
 
     emit toLog(QString("[info] Data source has been successfully created"));
+
+    OGRDataSource::DestroyDataSource(ds);
 }
 
 
 /* ------------------------------------------------------------------ */
-/*                             Читаем модель                          */
+/*                         Read from the network                      */
 /* ------------------------------------------------------------------ */
 void Widget::on_pushButton_clicked()
 {
     const char *str;
 
-    //далее согласно OGR API Tutorial, чтение из слоя
-
     OGRRegisterAll();
 
     OGRDataSource *poDS;
     str = "..\\..\\temp";
-    //poDS = OGRSFDriverRegistrar::Open(str, FALSE); //пока так сделать нельзя, драйвер не зареган
-    //(вместо OGRSFDriverRegistrar) -------------
+    //poDS = OGRSFDriverRegistrar::Open(str, FALSE);
+    //(temporary instead of OGRSFDriverRegistrar)--------------
     OGRSFDriver *dr = new OGRGnmDriver();
     poDS = dr->Open(str,FALSE);
-    //-------------------------------------------
+    //---------------------------------------------------------
     if( poDS == NULL )
     {
         emit toLog(QString("[error] Can not open data source ") + QString(str));
@@ -75,7 +80,7 @@ void Widget::on_pushButton_clicked()
         return;
     }
 
-    //считываем метаданные сети (выведутся версия и система координат)
+    // Read metadata from the model.
     OGRFeature *poFeature;
     poLayer->ResetReading();
     while( (poFeature = poLayer->GetNextFeature()) != NULL )
@@ -84,12 +89,12 @@ void Widget::on_pushButton_clicked()
         emit toLog(QString(poFeature->GetFieldAsString(0)) + QString(" = ") + QString(poFeature->GetFieldAsString(1)));
     }
 
-    OGRDataSource::DestroyDataSource( poDS );
+    OGRDataSource::DestroyDataSource(poDS);
 }
 
 
 /* ------------------------------------------------------------------ */
-/*                          Пишем в модель                            */
+/*                          Write to the network                      */
 /* ------------------------------------------------------------------ */
 void Widget::on_pushButton_2_clicked()
 {
@@ -98,7 +103,6 @@ void Widget::on_pushButton_2_clicked()
     OGRDataSource *poDS;
     const char *str;
     str = "..\\..\\temp";
-    //аналогично открытию
     OGRSFDriver *dr = new OGRGnmDriver();
     poDS = dr->Open(str,TRUE);
     if( poDS == NULL )
@@ -107,9 +111,7 @@ void Widget::on_pushButton_2_clicked()
         return;
     }
 
-    //далее согласно OGR API Tutorial, создание слоя и запись объектов
-
-    //создаём слой
+    // Create additional (user) layer.
     OGRLayer *poLayer;
     poLayer = poDS->CreateLayer("test_point_layer", NULL, wkbPoint, NULL);
     if( poLayer == NULL )
@@ -118,7 +120,7 @@ void Widget::on_pushButton_2_clicked()
         return;
     }
 
-    //добавляем некий атрибут (к уже имеющимся стандартным атрибутам)
+    // Add an additional (user) attribute.
     OGRFieldDefn oField("test_field", OFTString);
     oField.SetWidth(32);
     if( poLayer->CreateField( &oField ) != OGRERR_NONE )
@@ -128,15 +130,13 @@ void Widget::on_pushButton_2_clicked()
     }
     emit toLog(QString("[info] test_point_layer has been successfully created"));
 
-
-
-    //добавляем объекты с геометрией
-    //если внутри кода кнопки on_pushButton_2_clicked, то работает
-    for (int i=0; i<3; i++)
+    // Add objects with geometry.
+    for (int i=0; i<10; i++)
     {
         OGRFeature *poFeature;
         poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-        poFeature->SetField("test_field", "aaaaaa");
+        poFeature->SetField("test_field", QString(QString("aaa") + QString::number(i)).toUtf8().data());
+        //poFeature->SetField("test_field", "ddd");
         OGRPoint pt;
         pt.setX(i * 5.0);
         pt.setY(0.0);
@@ -148,7 +148,7 @@ void Widget::on_pushButton_2_clicked()
         }
         OGRFeature::DestroyFeature(poFeature);
     }
-    emit toLog(QString("[info] Features added to the new layer successfully"));
+    emit toLog(QString("[info] Features have been added to the new layer successfully"));
 
     if (poDS->SyncToDisk() != OGRERR_NONE)
     {
@@ -157,20 +157,15 @@ void Widget::on_pushButton_2_clicked()
     }
     emit toLog(QString("[info] Features have been successfully written"));
 
-
-
     OGRDataSource::DestroyDataSource(poDS);
 }
 
 
-
-//добавляем в тестовый слой объекты
+/* ------------------------------------------------------------------ */
+/*                  Read an object from the network                   */
+/* ------------------------------------------------------------------ */
 void Widget::on_pushButton_3_clicked()
 {
-    //если раскоментить следующий код (аналогичен предыдущей кнопке),
-    //то объекты не добавятся в слой. Разобраться, что это за баг.
-
-    /*
     OGRRegisterAll();
 
     OGRDataSource *poDS;
@@ -178,50 +173,45 @@ void Widget::on_pushButton_3_clicked()
     str = "..\\..\\temp";
     OGRSFDriver *dr = new OGRGnmDriver();
     poDS = dr->Open(str,TRUE);
-    if(poDS == NULL)
+    if( poDS == NULL )
     {
         emit toLog(QString("[error] Can not open data source ") + QString(str));
         return;
     }
 
-    OGRLayer *poLayer;
-    poLayer = poDS->GetLayerByName("test_point_layer");
-    if (poLayer == NULL)
+    OGRFeature *poFeature = static_cast<OGRGnmDataSource*>(poDS)->getFeature(2);
+    if (poFeature == NULL)
     {
-        emit toLog(QString("[error] Can not open layer (test_point_layer)"));
+        emit toLog(QString("[error] Can not get feature "));
         return;
     }
 
-        //добавляем объекты с геометрией
-        for (int i=0; i<3; i++)
-        {
-            OGRFeature *poFeature;
-            poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-            poFeature->SetField("test_field", "test string");
-            poFeature->SetField("is_blocked", 99);
-            poFeature->SetField("direction", 55);
-            OGRPoint pt;
-            pt.setX(i * 5.0);
-            pt.setY(0.0);
-            poFeature->SetGeometry(&pt);
-            if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
-            {
-                emit toLog(QString("[error] Can not create geometry feature"));
-                return;
-            }
-             OGRFeature::DestroyFeature(poFeature);
-        }
-        emit toLog(QString("[info] Features added to the new layer successfully"));
+    emit toLog(QString("[output] Features attributes: "));
+    emit toLog(QString(poFeature->GetFieldAsString("test_field")));
 
-        if (poDS->SyncToDisk() != OGRERR_NONE)
-        {
-            emit toLog(QString("[error] Failed to write to disk: "));
-            return;
-        }
-        emit toLog(QString("[info] Features have been successfully written"));
-        OGRDataSource::DestroyDataSource( poDS );
-*/
+    OGRDataSource::DestroyDataSource(poDS);
 }
+
+
+/* ------------------------------------------------------------------ */
+/*                          Delete network                            */
+/* ------------------------------------------------------------------ */
+void Widget::on_pushButton_5_clicked()
+{
+    OGRRegisterAll();
+
+    OGRSFDriver *dr = new OGRGnmDriver();
+
+    if (dr->DeleteDataSource("..\\..\\temp") != OGRERR_NONE)
+    {
+        emit toLog(QString("[error] Error while deleting layers in data source"));
+        return;
+    }
+
+    emit toLog(QString("[info] All layers have been deleted successfully"));
+}
+
+
 
 
 

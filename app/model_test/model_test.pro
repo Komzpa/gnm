@@ -14,16 +14,12 @@ TEMPLATE = app
 
 SOURCES += main.cc\
         widget.cc \
-    ../../gnm/gnmmanager.cpp \
     ../../gnm/ogrgnmdatasource.cpp \
     ../../gnm/ogrgnmdriver.cpp \
     ../../gnm/ogrgnmlayer.cpp
 
 HEADERS  += widget.h \
-    ../../gnm/ogr_gnm.h \
-    ../../gnm/gnmmanager.h \
-    ../../gnm/gnmanalysis.h \
-    ../../gnm/gnmcore.h
+    ../../gnm/ogr_gnm.h
 
 LIBS += c:\OSGeo4W\lib\gdal_i.lib
 

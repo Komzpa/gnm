@@ -1,10 +1,4 @@
-
 #include "ogr_gnm.h"
-
-//long OGRGnmLayer::idCounter = 0;
-
-//OGRLayer* OGRGnmLayer::idLayer =
-
 
 OGRGnmLayer::OGRGnmLayer(OGRLayer *mainLayer, OGRGnmDataSource *parentDataSource)
 {
@@ -14,8 +8,7 @@ OGRGnmLayer::OGRGnmLayer(OGRLayer *mainLayer, OGRGnmDataSource *parentDataSource
 
 OGRGnmLayer::~OGRGnmLayer ()
 {
-    //здесь нельзя удалять сам geoLayer, т.к. это только ещё одна ссылка на слой
-    //CPLFree(geoLayer);
+    // We must not delete the geoLayer itself here.
 }
 
 void OGRGnmLayer::ResetReading ()
@@ -40,9 +33,8 @@ int OGRGnmLayer::TestCapability (const char *)
 
 
 /************************************************************************/
-/*                       Create new field                               */
+/*                            CreateField()                             */
 /************************************************************************/
-
 OGRErr OGRGnmLayer::CreateField(OGRFieldDefn *poField, int bApproxOK)
 {
     return geoLayer->CreateField(poField, bApproxOK);
@@ -63,15 +55,12 @@ OGRErr OGRGnmLayer::SetFeature (OGRFeature *poFeature)
 
 
 /************************************************************************/
-/*                       Create new feature in layer                    */
+/*                          CreateFeature()                             */
 /************************************************************************/
-
 OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
 {
-    // Check for obligatory attributes' correct values
-
+    // Check for obligatory attributes' correct values.
     int temp;
-
     temp = poFeature->GetFieldAsInteger("is_blocked");
     if (temp != GNM_FEATURE_BLOCKED
      && temp != GNM_FEATURE_UNBLOCKED)
@@ -79,7 +68,6 @@ OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
         // Set initial value if incoming value is incorrect.
         poFeature->SetField("is_blocked",GNM_FEATURE_UNBLOCKED);
     }
-
     temp = poFeature->GetFieldAsInteger("direction");
     if (temp != GNM_FEATURE_STRAIGHT_DIRECTION
      && temp != GNM_FEATURE_REVERSE_DIRECTION
@@ -90,9 +78,6 @@ OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
     }
 
     // Set feature unique ID.
-     //OGRErr err = poFeature->SetFID(idCounter);
-     //if (err != OGRERR_NONE) return err;
-     //idCounter++;
     long id = parentDataSrc->getNextFeatureId();
     poFeature->SetFID(id);
 
