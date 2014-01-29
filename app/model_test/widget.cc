@@ -21,9 +21,9 @@ Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
 }
 
 
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
 /*                             Create network                         */
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
 void Widget::on_pushButton_4_clicked()
 {
     OGRRegisterAll(); // ogr\ogrsf_frmts\generic\ogrsfdriverregistrar.cpp
@@ -49,9 +49,9 @@ void Widget::on_pushButton_4_clicked()
 }
 
 
-/* ------------------------------------------------------------------ */
-/*                         Read from the network                      */
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
+/*                         Read layer                                 */
+/**********************************************************************/
 void Widget::on_pushButton_clicked()
 {
     const char *str;
@@ -71,31 +71,44 @@ void Widget::on_pushButton_clicked()
         return;
     }
 
-    OGRLayer *poLayer;
-    str = "network_meta";
-    poLayer = poDS->GetLayerByName(str);
-    if( poLayer == NULL )
+    QByteArray ba = ui->lineEdit_3->text().toUtf8();
+    const char* str2 = ba.data();
+    OGRLayer *poLayer = poDS->GetLayerByName(str2);
+    if(poLayer == NULL)
     {
-        emit toLog(QString("[error] Can not open layer ") + QString(str));
+        emit toLog(QString("[error] Can not open layer ") + QString(str2));
         return;
     }
 
-    // Read metadata from the model.
+//---test-----------------
+    //const char *str1 = poLayer->GetFIDColumn();
+    //const char *str2 = static_cast<OGRGnmLayer*>(poLayer)->getInnerLayer()->GetFIDColumn();
+//------------------------
+
+    QString line;
     OGRFeature *poFeature;
     poLayer->ResetReading();
-    while( (poFeature = poLayer->GetNextFeature()) != NULL )
+    emit toLog("[output] " + QString(str2) + " features' attributes: ");
+    int iField;
+    while((poFeature = poLayer->GetNextFeature()) != NULL)
     {
-        emit toLog("[output] Network metadata: ");
-        emit toLog(QString(poFeature->GetFieldAsString(0)) + QString(" = ") + QString(poFeature->GetFieldAsString(1)));
+        line = "FID=" + QString::number(poFeature->GetFID()) + "  ";
+        OGRFeatureDefn *poFDefn = poLayer->GetLayerDefn();
+        for( iField = 0; iField < poFDefn->GetFieldCount(); iField++ )
+        {
+            line = line + "[" + poFeature->GetFieldAsString(iField) + "]  ";
+        }
+        emit toLog(line);
+        OGRFeature::DestroyFeature(poFeature);
     }
 
     OGRDataSource::DestroyDataSource(poDS);
 }
 
 
-/* ------------------------------------------------------------------ */
-/*                          Write to the network                      */
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
+/*           add test user table with geometry objects                */
+/**********************************************************************/
 void Widget::on_pushButton_2_clicked()
 {
     OGRRegisterAll();
@@ -104,8 +117,8 @@ void Widget::on_pushButton_2_clicked()
     const char *str;
     str = "..\\..\\temp";
     OGRSFDriver *dr = new OGRGnmDriver();
-    poDS = dr->Open(str,TRUE);
-    if( poDS == NULL )
+    poDS = dr->Open(str, TRUE);
+    if(poDS == NULL)
     {
         emit toLog(QString("[error] Can not open data source ") + QString(str));
         return;
@@ -114,7 +127,7 @@ void Widget::on_pushButton_2_clicked()
     // Create additional (user) layer.
     OGRLayer *poLayer;
     poLayer = poDS->CreateLayer("test_point_layer", NULL, wkbPoint, NULL);
-    if( poLayer == NULL )
+    if(poLayer == NULL)
     {
         emit toLog(QString("[error] Can not create layer"));
         return;
@@ -123,7 +136,7 @@ void Widget::on_pushButton_2_clicked()
     // Add an additional (user) attribute.
     OGRFieldDefn oField("test_field", OFTString);
     oField.SetWidth(32);
-    if( poLayer->CreateField( &oField ) != OGRERR_NONE )
+    if(poLayer->CreateField( &oField ) != OGRERR_NONE)
     {
         emit toLog(QString("[error] Can not create field"));
         return;
@@ -136,7 +149,6 @@ void Widget::on_pushButton_2_clicked()
         OGRFeature *poFeature;
         poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
         poFeature->SetField("test_field", QString(QString("aaa") + QString::number(i)).toUtf8().data());
-        //poFeature->SetField("test_field", "ddd");
         OGRPoint pt;
         pt.setX(i * 5.0);
         pt.setY(0.0);
@@ -150,20 +162,13 @@ void Widget::on_pushButton_2_clicked()
     }
     emit toLog(QString("[info] Features have been added to the new layer successfully"));
 
-    if (poDS->SyncToDisk() != OGRERR_NONE)
-    {
-        emit toLog(QString("[error] Failed to write to disk: "));
-        return;
-    }
-    emit toLog(QString("[info] Features have been successfully written"));
-
     OGRDataSource::DestroyDataSource(poDS);
 }
 
 
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
 /*                  Read an object from the network                   */
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
 void Widget::on_pushButton_3_clicked()
 {
     OGRRegisterAll();
@@ -173,29 +178,41 @@ void Widget::on_pushButton_3_clicked()
     str = "..\\..\\temp";
     OGRSFDriver *dr = new OGRGnmDriver();
     poDS = dr->Open(str,TRUE);
-    if( poDS == NULL )
+    if(poDS == NULL)
     {
         emit toLog(QString("[error] Can not open data source ") + QString(str));
         return;
     }
 
-    OGRFeature *poFeature = static_cast<OGRGnmDataSource*>(poDS)->getFeature(2);
+    long UFID = ui->lineEdit->text().toLong();
+    OGRFeature *poFeature = static_cast<OGRGnmDataSource*>(poDS)->getFeature(UFID);
     if (poFeature == NULL)
     {
         emit toLog(QString("[error] Can not get feature "));
         return;
     }
-
-    emit toLog(QString("[output] Features attributes: "));
-    emit toLog(QString(poFeature->GetFieldAsString("test_field")));
+    else
+    {
+        QString line;
+        emit toLog(QString("[output] Features attributes: "));
+        int iField;
+            line = "[" + QString::number(poFeature->GetFID()) + "]  " ;
+            OGRFeatureDefn *poFDefn = poFeature->GetDefnRef();
+            for( iField = 0; iField < poFDefn->GetFieldCount(); iField++ )
+            {
+                line = line + "[" + poFeature->GetFieldAsString(iField) + "]  ";
+            }
+            emit toLog(line);
+       OGRFeature::DestroyFeature(poFeature);
+    }
 
     OGRDataSource::DestroyDataSource(poDS);
 }
 
 
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
 /*                          Delete network                            */
-/* ------------------------------------------------------------------ */
+/**********************************************************************/
 void Widget::on_pushButton_5_clicked()
 {
     OGRRegisterAll();
@@ -212,6 +229,43 @@ void Widget::on_pushButton_5_clicked()
 }
 
 
+/**********************************************************************/
+/*                            Import data                             */
+/**********************************************************************/
+void Widget::on_pushButton_6_clicked()
+{
+    OGRRegisterAll();
+    OGRDataSource *poDS;
+    const char *str;
+    str = "..\\..\\temp";
+    OGRSFDriver *dr = new OGRGnmDriver();
+    poDS = dr->Open(str, TRUE);
+    if( poDS == NULL )
+    {
+        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        return;
+    }
+
+    char *path = NULL;
+    char *layer = NULL;
+    QByteArray ba1 = ui->lineEdit_2->text().toUtf8();
+    path = ba1.data();
+    QByteArray ba2 = ui->lineEdit_4->text().toUtf8();
+    layer = ba2.data();
+    OGRErr err = static_cast<OGRGnmDataSource*>(poDS)->importLayer(path, layer, NULL);
+    if (err != OGRERR_NONE)
+        emit toLog(QString("[error] Can not import layer "));
+    else
+        emit toLog(QString("[info] The layer has been imported successfully"));
+
+    OGRDataSource::DestroyDataSource(poDS);
+}
+
+
+void Widget::on_pushButton_7_clicked()
+{
+
+}
 
 
 

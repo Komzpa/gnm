@@ -5,20 +5,25 @@
 
 
 #define GNM_FEATURE_BLOCKED 1
-#define GNM_FEATURE_UNBLOCKED 0
+#define GNM_FEATURE_UNBLOCKED 2
 
 #define GNM_FEATURE_STRAIGHT_DIRECTION 1
-#define GNM_FEATURE_REVERSE_DIRECTION 0
-#define GNM_FEATURE_DOUBLE_DIRECTION 2
+#define GNM_FEATURE_REVERSE_DIRECTION 2
+#define GNM_FEATURE_DOUBLE_DIRECTION 3
 
-#define GNM_METADATA_FORMAT_VERSION 0
-#define GNM_METADATA_SRS 1
-#define GNM_METADATA_ID_COUNTER 2
+// Features IDs of the network_metadata table.
+//#define GNM_METADATA_FORMAT_VERSION 0
+//#define GNM_METADATA_SRS 1
+//#define GNM_METADATA_ID_COUNTER 2
+//#define GNM_METADATA_DEFAULT_NETWORK_ALIAS 3
+//#define GNM_METADATA_DEFAULT_NETWORK_NAME 4
 
+// Names of options in the pair name & value
 #define GNM_OPTION_DRIVER_NAME "drvname"
 
 
 // Available supported drivers. The list must end with NULL.
+// The string must be one of OGR Code strings at http://www.gdal.org/ogr/ogr_formats.html
 static const char *GNMSupportedDrivers[] = {
     "ESRI Shapefile",
     "GeoJSON",
@@ -34,7 +39,7 @@ static const char *GNMSystemLayers[] = {
     "network_ids",
     NULL };
 
-// Count of GNMSystemLayers array's elements.
+// Count of GNMSystemLayers array's elements without the last NULL.
 static int GNMSystemLayersCount = 4;
 
 
@@ -44,7 +49,7 @@ class OGRGnmDataSource;
 /************************************************************************/
 /*                            OGRGnmLayer                               */
 /************************************************************************/
-//Behaves like a proxy to the real layer with geometry and attributes
+// Behaves like a proxy to the real layer with geometry and attributes.
 class OGRGnmLayer : public OGRLayer
 {
     private:
@@ -60,6 +65,10 @@ class OGRGnmLayer : public OGRLayer
     OGRGnmLayer (OGRLayer *mainLayer, OGRGnmDataSource *parentDataSource);
 
     ~OGRGnmLayer ();
+
+//new---------------------------------------------
+    OGRLayer *getInnerLayer();
+//------------------------------------------------
 
 //required----------------------------------------
     void ResetReading ();
@@ -77,6 +86,12 @@ class OGRGnmLayer : public OGRLayer
     OGRErr SetFeature (OGRFeature *poFeature);
 
     OGRErr CreateFeature (OGRFeature *poFeature);
+
+    OGRFeature *GetFeature (long nFID);
+
+    OGRErr DeleteFeature (long nFID);
+
+    OGRErr SyncToDisk ();
 //-------------------------------------------------
 
 };
@@ -98,7 +113,7 @@ class OGRGnmDataSource : public OGRDataSource
      // Inner data source, which stores all layers in given format.
      OGRDataSource* geoDataSrc;
 
-     long idCounter;
+     //long idCounter;
 
     public:
 
@@ -120,7 +135,7 @@ class OGRGnmDataSource : public OGRDataSource
      void unwrapLayer (int iLayer);
 
      // Get the feature from the whole data source.
-     OGRFeature *getFeature (long nGFID);
+     OGRFeature *getFeature (long globalFID);
 
      // Returns geoDataSrc.
      OGRDataSource *getInnerDataSource ();
@@ -131,6 +146,15 @@ class OGRGnmDataSource : public OGRDataSource
 
      // Get next id for new feature.
      long getNextFeatureId ();
+
+     // Import required layer and wrap it with proxy.
+     OGRErr importLayer (const char *pszDataSrc, const char *pszLayer, char** papszOptions);
+
+     // Get string value of the required metadata parameter.
+     const char *getMetaParamValue(const char *paramName);
+
+     // Set the string to the required metadata parameter.
+     void setMetaParamValue(const char * paramName, const char *paramValue);
 
      //NErr connect(long nGFID1, long nGFID2);
 
