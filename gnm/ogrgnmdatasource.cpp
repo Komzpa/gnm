@@ -1,5 +1,7 @@
 #include "ogr_gnm.h"
 
+// GLOBAL TODO: replace any stub OGRERR_FAILURE with the specific error code.
+
 
 /************************************************************************/
 /*                                 open()                               */
@@ -10,27 +12,56 @@ OGRErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papsz
     // of the identified format as efficiently as possible, since many drivers may be
     // invoked with files of the wrong format before the correct driver is reached.
 
-    // Open data source with the given format.
-    // TODO: check the obtained format of the data source, or force to use one of
-    // supported formats (may be using papszOptions).
+    // Open inner data source.
     geoDataSrc = OGRSFDriverRegistrar::Open(pszFilename, TRUE);
-    if (geoDataSrc == NULL) return OGRERR_FAILURE;
+    if (geoDataSrc == NULL)
+        return OGRERR_FAILURE;
 
-    int count = geoDataSrc->GetLayerCount();
+    // TODO: check the obtained format of the inner (geo) data source, or force to use one of
+    // supported formats (may be using papszOptions).
 
+    // TODO: OGRSFDriverRegistrar for Shape opens ALL files from the given directory,
+    // even which have been added there manually. Understand how to open only that files
+    // which are registered in our data source.
+
+    // Wrap system layers. If one of system layers does not exist - the
+    // network should not be opened.
+    OGRLayer *sysLayer;
+    int i;
+    for (i = 0; i < GNMSystemLayersCount; i++)
+    {
+        sysLayer = geoDataSrc->GetLayerByName(GNMSystemLayers[i]);
+        if (sysLayer == NULL)
+            return OGRERR_FAILURE;
+        else
+            this->wrapLayer(sysLayer);
+    }
+
+    // TODO: check that all obligatory metadata in network_meta was found.
+    //...
+
+    // Wrap layers, which are registered in network_register.
+    OGRLayer *regLayer = geoDataSrc->GetLayerByName("network_register");
+    int count = regLayer->GetFeatureCount();
+    OGRFeature *regFeature;
+    for (i = 0; i < count; i++)
+    {
+        regFeature = regLayer->GetFeature(i);
+        OGRLayer *userLayer = geoDataSrc->GetLayerByName(regFeature->GetFieldAsString("layer_name"));
+        this->wrapLayer(userLayer);
+        OGRFeature::DestroyFeature(regFeature);
+    }
+
+/*
     // Fill the papoLayers array with pointers to specific format layers.
+    int count = geoDataSrc->GetLayerCount();
     for (int i = 0; i < count; i++)
     {
         this->wrapLayer(geoDataSrc->GetLayer(i));
     }
+*/
 
-    // TODO: check that all system layers were found.
-    //...
-
-    // TODO: check that all obligatory metadata was found.
-    //...
-
-    /*
+/*
     // Get the last value of id_counter.
     //OGRLayer *poLayer = geoDataSrc->GetLayerByName("network_meta");
     //if (poLayer == NULL) return OGRERR_FAILURE;
@@ -38,10 +69,11 @@ OGRErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papsz
     //if (poFeature == NULL) return OGRERR_FAILURE;
     //const char *temp = poFeature->GetFieldAsString("value");
     //idCounter = atol(temp); // atoi is also used in GetFieldAsString().
-    */
-
+*/
+/*
     //const char *idStr = this->getMetaParamValue("id_counter");
     //idCounter = atol(idStr);
+*/
 
     // Give a name to this DataSource.
     //pszName = pszFilename;
@@ -56,33 +88,31 @@ OGRErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papsz
 /************************************************************************/
 OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 {
-    // TODO: replace any NERR_ANY with the specific error code.
-
     // Get the driverName from papszOptions.
     const char *driverName = CSLFetchNameValue(papszOptions, GNM_OPTION_DRIVER_NAME);
 
     // Check for the valid driverName.
     //if (CSLFindString(GNMSupportedDrivers, driverName) == -1) return NERR_ANY;
 
-    //while(!fl)
-    //{
-        //if (GNMSystemLayers[j] == NULL) break;
-
     int i = 0;
     while(TRUE)
     {
-        if (strcmp(driverName,GNMSupportedDrivers[i]) == 0) break;
-        else if (GNMSupportedDrivers[i] == NULL) return OGRERR_FAILURE;
+        if (strcmp(driverName, GNMSupportedDrivers[i]) == 0)
+            break;
+        else if (GNMSupportedDrivers[i] == NULL)
+            return OGRERR_FAILURE;
     }
 
 /* ------------------------------------------------------------------ */
 /*               Create data source with given format.                */
 /* ------------------------------------------------------------------ */
     OGRSFDriver* geoDriver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName(driverName);
-    if (geoDriver == NULL) return OGRERR_FAILURE;
+    if (geoDriver == NULL)
+        return OGRERR_FAILURE;
 
     this->geoDataSrc = geoDriver->CreateDataSource(pszFilename, NULL);
-    if (this->geoDataSrc == NULL) return OGRERR_FAILURE;
+    if (this->geoDataSrc == NULL)
+        return OGRERR_FAILURE;
 
     OGRFieldDefn *poField;
     OGRLayer *poLayer;
@@ -92,55 +122,55 @@ OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 /*                      Create table network_meta.                    */
 /* ------------------------------------------------------------------ */
     poLayer = this->geoDataSrc->CreateLayer("network_meta", NULL, wkbNone, NULL);
-    if (poLayer == NULL) return OGRERR_FAILURE;
+    if (poLayer == NULL)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("param_name", OFTString);
-    if(poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("value", OFTString);
-    if(poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
-
-    //poField = new OGRFieldDefn("OGC_FID", OFTInteger);
-    //if(poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     // Write network format version.
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "Format version");
     poFeature->SetField("value", "1.0");
-    //poFeature->SetFID(GNM_METADATA_FORMAT_VERSION); // We set FID here in order to get this meta-feature with OGRLayer::getFeature().
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+        return OGRERR_FAILURE;
     OGRFeature::DestroyFeature(poFeature);
 
     // Write SRS.
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "SRS");
     poFeature->SetField("value", "WGS 84");
-    //poFeature->SetFID(GNM_METADATA_SRS);
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+        return OGRERR_FAILURE;
     OGRFeature::DestroyFeature(poFeature);
 
     // Write unique feature id counter.
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "id_counter");
     poFeature->SetField("value", "0");
-    //poFeature->SetFID(GNM_METADATA_ID_COUNTER);
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+        return OGRERR_FAILURE;
     OGRFeature::DestroyFeature(poFeature);
 
     // Write default network alias.
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "network_alias");
     poFeature->SetField("value", "mynetwork"); // Without "_".
-    //poFeature->SetFID(GNM_METADATA_DEFAULT_NETWORK_ALIAS);
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+        return OGRERR_FAILURE;
     OGRFeature::DestroyFeature(poFeature);
 
     // Write default network name.
     poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
     poFeature->SetField("param_name", "network_name");
     poFeature->SetField("value", "My network");
-    //poFeature->SetFID(GNM_METADATA_DEFAULT_NETWORK_NAME);
-    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE) return OGRERR_FAILURE;
+    if(poLayer->CreateFeature(poFeature) != OGRERR_NONE)
+        return OGRERR_FAILURE;
     OGRFeature::DestroyFeature(poFeature);
 
     this->wrapLayer(poLayer);
@@ -149,18 +179,22 @@ OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 /*                  Create table network_graph.                       */
 /* ------------------------------------------------------------------ */
     poLayer = this->geoDataSrc->CreateLayer("network_graph", NULL, wkbNone, NULL);
-    if (poLayer == NULL) return OGRERR_FAILURE;
+    if (poLayer == NULL)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("id", OFTInteger);
-    if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     // TODO: make sure that the driver supports OFTIntegerList.
     // Otherwise operate with several tables?
     //poField = new OGRFieldDefn("connected_ids", OFTIntegerList);
-    //if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    //if (poLayer->CreateField(poField) != OGRERR_NONE)
+        //return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("weight", OFTInteger);
-    if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     this->wrapLayer(poLayer);
 
@@ -168,10 +202,12 @@ OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 /*                   Create table network_rules.                      */
 /* ------------------------------------------------------------------ */
     poLayer = this->geoDataSrc->CreateLayer("network_rules", NULL, wkbNone, NULL);
-    if (poLayer == NULL) return OGRERR_FAILURE;
+    if (poLayer == NULL)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("con_rules", OFTString);
-    if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     // TODO: Write default rules.
 
@@ -180,23 +216,34 @@ OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 /* ------------------------------------------------------------------ */
 /*                  Create table network_ids.                         */
 /* ------------------------------------------------------------------ */
-    //char** papszCrOptions = NULL;
-    //papszCrOptions = CSLAddNameValue(papszCrOptions, "SHPT", "NULL");
-    //poLayer = this->geoDataSrc->CreateLayer("network_ids", NULL, wkbNone, papszCrOptions);
-    //CSLDestroy(papszCrOptions);
-    //if (poLayer == NULL) return NERR_ANY;
-
     poLayer = this->geoDataSrc->CreateLayer("network_ids", NULL, wkbNone, NULL);
-    if (poLayer == NULL) return OGRERR_FAILURE;
+    if (poLayer == NULL)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("id_global", OFTInteger);
-    if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("layer_name", OFTString);
-    if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     poField = new OGRFieldDefn("id_local", OFTInteger);
-    if (poLayer->CreateField(poField) != OGRERR_NONE) return OGRERR_FAILURE;
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
+
+    this->wrapLayer(poLayer);
+
+/* ------------------------------------------------------------------ */
+/*                  Create table network_register.                    */
+/* ------------------------------------------------------------------ */
+    poLayer = this->geoDataSrc->CreateLayer("network_register", NULL, wkbNone, NULL);
+    if (poLayer == NULL)
+        return OGRERR_FAILURE;
+
+    poField = new OGRFieldDefn("layer_name", OFTString);
+    if (poLayer->CreateField(poField) != OGRERR_NONE)
+        return OGRERR_FAILURE;
 
     this->wrapLayer(poLayer);
 
@@ -226,34 +273,6 @@ OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
 /************************************************************************/
 OGRFeature* OGRGnmDataSource::getFeature(long globalFID)
 {
-    /*
-    // Determine the layer which holds the feature with this unique ID.
-    OGRLayer *poLayer;
-    poLayer = this->GetLayerByName("network_ids");
-    if (poLayer == NULL) return NULL;
-
-    poLayer->ResetReading();
-    OGRFeature *poFeature;
-    poFeature = poLayer->GetFeature(nGFID);
-    if (poFeature == NULL) return NULL;
-
-    const char *layerName = "";
-    layerName = poFeature->GetFieldAsString("layer_name");
-    if (layerName == "") return NULL;
-
-    // Get the final feature from this layer.
-    OGRLayer *poTargetLayer;
-    poTargetLayer = this->geoDataSrc->GetLayerByName(layerName);
-    if (poTargetLayer == NULL) return NULL;
-
-    poTargetLayer->ResetReading();
-    OGRFeature *poTargetFeature;
-    poTargetFeature = poTargetLayer->GetFeature(nGFID);
-    if (poTargetFeature == NULL) return NULL;
-
-    return poTargetFeature;
-    */
-
     // Determine the layer which holds the feature with this unique ID.
     OGRLayer *poLayer;
     poLayer = this->GetLayerByName("network_ids");
@@ -282,7 +301,7 @@ OGRFeature* OGRGnmDataSource::getFeature(long globalFID)
 /************************************************************************/
 OGRGnmLayer* OGRGnmDataSource::wrapLayer(OGRLayer *layer)
 {
-    // TODO: check if nLayers has reached maximum.
+    // TODO: check if nLayers had reached maximum.
 
     // Add a pointer to the general array of OGRGnmLayer pointers,
     // where each of them stores a pointer to the OGRLayer of
@@ -319,16 +338,19 @@ void OGRGnmDataSource::unwrapLayer (int iLayer)
 /************************************************************************/
 long OGRGnmDataSource::getNextFeatureId()
 {
-    //long newId = idCounter;
-    //idCounter = idCounter + 2;
-    //return newId;
-
-    //OGRLayer *l = this->GetLayerByName("network_meta");
-    //OGRFeature *f = l->GetFeature(GNM_METADATA_ID_COUNTER);
-    //long id = f->GetFieldAsInteger("value");
-    //f->SetField("value", id + 1);
-    //OGRFeature::DestroyFeature(f);
-    //return id;
+/*
+    long newId = idCounter;
+    idCounter = idCounter + 2;
+    return newId;
+*/
+/*
+    OGRLayer *l = this->GetLayerByName("network_meta");
+    OGRFeature *f = l->GetFeature(GNM_METADATA_ID_COUNTER);
+    long id = f->GetFieldAsInteger("value");
+    f->SetField("value", id + 1);
+    OGRFeature::DestroyFeature(f);
+    return id;
+*/
 
     // TODO: check for the maximum value of the id_counter.
 
@@ -368,6 +390,29 @@ bool OGRGnmDataSource::isSystemLayer(int iLayer)
         if (strcmp(name, GNMSystemLayers[i]) == 0)
             return true;
         i++;
+    }
+    return false;
+}
+
+
+/************************************************************************/
+/*                            isUserLayer()                             */
+/************************************************************************/
+bool OGRGnmDataSource::isUserLayer(int iLayer)
+{
+    if (iLayer < 0 || iLayer >= nLayers) return false;
+
+    const char *layerName = this->GetLayer(iLayer)->GetName();
+
+    OGRLayer *poRegLayer = this->GetLayerByName("network_register");
+    int count = poRegLayer->GetFeatureCount();
+    OGRFeature *poRegFeature;
+    for (int i = 0; i < count; i++)
+    {
+        poRegFeature = poRegLayer->GetFeature(i);
+        const char *name = poRegFeature->GetFieldAsString("layer_name");
+        if (strcmp(layerName, name) == 0)
+            return true;
     }
     return false;
 }
@@ -542,8 +587,6 @@ const char* OGRGnmDataSource::GetName()
 /************************************************************************/
 int OGRGnmDataSource::GetLayerCount()
 {
-    //return this->geoDataSrc->GetLayerCount();
-
     return nLayers;
 }
 
@@ -553,8 +596,6 @@ int OGRGnmDataSource::GetLayerCount()
 /************************************************************************/
 OGRLayer* OGRGnmDataSource::GetLayer(int iLayer)
 {
-    //return this->geoDataSrc->GetLayer(index);
-
     if(iLayer < 0 || iLayer >= nLayers) return NULL;
     else return papoLayers[iLayer];
 }
@@ -565,24 +606,15 @@ OGRLayer* OGRGnmDataSource::GetLayer(int iLayer)
 /************************************************************************/
 OGRLayer* OGRGnmDataSource::GetLayerByName(const char *name)
 {
-    //return this->geoDataSrc->GetLayerByName(name);
-
     const char *str;
-    //int nom;
-    //bool fl = false;
     for (int i=0; i<nLayers; i++)
     {
         str = papoLayers[i]->GetName();
-        if (strcmp(str, name) == 0) // strcmp is also used in some other drivers.
+        if (strcmp(str, name) == 0) // note: strcmp is also used in some other drivers.
         {
             return papoLayers[i];
-            //nom = i;
-            //fl = true;
         }
     }
-
-    //if (fl == true) return papoLayers[nom];
-    //else return NULL;
     return NULL;
 }
 
@@ -626,6 +658,13 @@ OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference
     if(geoLayer->CreateField(oField) != OGRERR_NONE)
         return NULL;
 
+    // Add the name of this layer to the special register table.
+    OGRLayer *regLayer = this->getInnerDataSource()->GetLayerByName("network_register");
+    OGRFeature *regFeature = OGRFeature::CreateFeature(regLayer->GetLayerDefn());
+    regFeature->SetField("layer_name", pszName);
+    regLayer->CreateFeature(regFeature);
+    OGRFeature::DestroyFeature(regFeature);
+
     // Wrap a special format layer with our format and return it.
     return wrapLayer(geoLayer);
 }
@@ -636,7 +675,7 @@ OGRLayer* OGRGnmDataSource::CreateLayer(const char *pszName, OGRSpatialReference
 /************************************************************************/
 OGRErr OGRGnmDataSource::SyncToDisk()
 {
-    // SyncToDisk does not call when DestroyDatasource calls.
+    // note: SyncToDisk() does not call during the work of DestroyDatasource().
     return geoDataSrc->SyncToDisk();
 }
 
@@ -655,6 +694,8 @@ OGRErr OGRGnmDataSource::DeleteLayer(int iLayer)
     // TODO: delete all corresponding features from network_ids.
 
     // TODO: delete all corresponding features from network_graph.
+
+    // TODO: delete the name from network_register.
 
     // Delete real layer.
     return geoDataSrc->DeleteLayer(iLayer);

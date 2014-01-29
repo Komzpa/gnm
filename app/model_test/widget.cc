@@ -167,7 +167,7 @@ void Widget::on_pushButton_2_clicked()
 
 
 /**********************************************************************/
-/*                  Read an object from the network                   */
+/*                    Read an object from the network                 */
 /**********************************************************************/
 void Widget::on_pushButton_3_clicked()
 {
@@ -196,7 +196,7 @@ void Widget::on_pushButton_3_clicked()
         QString line;
         emit toLog(QString("[output] Features attributes: "));
         int iField;
-            line = "[" + QString::number(poFeature->GetFID()) + "]  " ;
+            line = "FID=" + QString::number(poFeature->GetFID()) + "  " ;
             OGRFeatureDefn *poFDefn = poFeature->GetDefnRef();
             for( iField = 0; iField < poFDefn->GetFieldCount(); iField++ )
             {

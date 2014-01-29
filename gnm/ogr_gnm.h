@@ -11,13 +11,6 @@
 #define GNM_FEATURE_REVERSE_DIRECTION 2
 #define GNM_FEATURE_DOUBLE_DIRECTION 3
 
-// Features IDs of the network_metadata table.
-//#define GNM_METADATA_FORMAT_VERSION 0
-//#define GNM_METADATA_SRS 1
-//#define GNM_METADATA_ID_COUNTER 2
-//#define GNM_METADATA_DEFAULT_NETWORK_ALIAS 3
-//#define GNM_METADATA_DEFAULT_NETWORK_NAME 4
-
 // Names of options in the pair name & value
 #define GNM_OPTION_DRIVER_NAME "drvname"
 
@@ -37,10 +30,11 @@ static const char *GNMSystemLayers[] = {
     "network_graph",
     "network_rules",
     "network_ids",
+    "network_register",
     NULL };
 
 // Count of GNMSystemLayers array's elements without the last NULL.
-static int GNMSystemLayersCount = 4;
+static int GNMSystemLayersCount = 5;
 
 
 class OGRGnmDataSource;
@@ -143,6 +137,9 @@ class OGRGnmDataSource : public OGRDataSource
      // Returns true, if the given layer is one of the system layers.
      // List of system layers is stored in GNMSystemLayers[].
      bool isSystemLayer (int iLayer);
+
+     //
+     bool isUserLayer (int iLayer);
 
      // Get next id for new feature.
      long getNextFeatureId ();

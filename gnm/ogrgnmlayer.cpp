@@ -63,7 +63,7 @@ OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
         temp != GNM_FEATURE_UNBLOCKED)
     {
         // Set initial value if incoming value is incorrect.
-        poFeature->SetField("is_blocked",GNM_FEATURE_UNBLOCKED);
+        poFeature->SetField("is_blocked", GNM_FEATURE_UNBLOCKED);
     }
     temp = poFeature->GetFieldAsInteger("direction");
     if (temp != GNM_FEATURE_STRAIGHT_DIRECTION &&
@@ -71,7 +71,7 @@ OGRErr OGRGnmLayer::CreateFeature (OGRFeature *poFeature)
         temp != GNM_FEATURE_DOUBLE_DIRECTION)
     {
         // Set initial value if incoming value is incorrect.
-        poFeature->SetField("direction",GNM_FEATURE_DOUBLE_DIRECTION);
+        poFeature->SetField("direction", GNM_FEATURE_DOUBLE_DIRECTION);
     }
 
     /*

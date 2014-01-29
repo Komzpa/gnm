@@ -57,6 +57,7 @@ OGRErr OGRGnmDriver::DeleteDataSource(const char *pszName)
     // Firstly delete all user layers, because they may have features,
     // which ids are stored in system layers.
 
+    /*
     int i = 0;
     while (poDS->GetLayerCount() > GNMSystemLayersCount)
     {
@@ -67,10 +68,37 @@ OGRErr OGRGnmDriver::DeleteDataSource(const char *pszName)
         }
         else i++;
     }
+    */
+
+    int i = 0;
+    while (poDS->GetLayerCount() > GNMSystemLayersCount)
+    {
+        if (poDS->isUserLayer(i))
+        {
+           OGRErr err = poDS->DeleteLayer(i);
+           if (err != OGRERR_NONE)
+               return OGRERR_FAILURE;
+        }
+        else
+            i++;
+    }
+
+/*
+    OGRLayer *regLayer = poDS->GetLayerByName("network_register");
+    int count = regLayer->GetFeatureCount();
+    OGRFeature *regFeature;
+    for (int i = 0; i < count; i++)
+    {
+        regFeature = regLayer->GetFeature(i);
+        const char *layerName = regFeature->GetFieldAsString("layer_name");
+        OGRLayer *layerToDelete = poDS->GetLayerByName(layerName);
+        poDS->DeleteLayer(layerToDelete->) ...
+    }
+*/
 
     // Than delete system layers.
-    // In this place we know, that system layers exist, because it was checked
-    // during the opening of data source.
+    // In this place we know, that system layers exist, because it was
+    // checked during the opening of data source.
     do
     {
         i = poDS->GetLayerCount() - 1;
