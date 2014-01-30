@@ -30,6 +30,7 @@ OGRErr OGRGnmDataSource::open(const char* pszFilename, int bUpdate, char** papsz
     int i;
     for (i = 0; i < GNMSystemLayersCount; i++)
     {
+        const char* temp = GNMSystemLayers[i];
         sysLayer = geoDataSrc->GetLayerByName(GNMSystemLayers[i]);
         if (sysLayer == NULL)
             return OGRERR_FAILURE;
@@ -97,10 +98,11 @@ OGRErr OGRGnmDataSource::create(const char *pszFilename, char **papszOptions)
     int i = 0;
     while(TRUE)
     {
-        if (strcmp(driverName, GNMSupportedDrivers[i]) == 0)
-            break;
-        else if (GNMSupportedDrivers[i] == NULL)
+        if (GNMSupportedDrivers[i] == NULL)
             return OGRERR_FAILURE;
+        else if (strcmp(driverName, GNMSupportedDrivers[i]) == 0)
+            break;
+        i++;
     }
 
 /* ------------------------------------------------------------------ */

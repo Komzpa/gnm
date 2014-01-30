@@ -22,6 +22,11 @@ class Widget : public QWidget
      explicit Widget(QWidget *parent = 0);
      ~Widget();
 
+     // Currently opened network:
+     OGRSFDriver *poDriver;
+     OGRDataSource *poDataSource;
+     bool wasDSClosed;
+
     // The signal-slot pair to type the message to log.
     signals:
      void toLog(QString str);
@@ -34,6 +39,7 @@ class Widget : public QWidget
      void on_pushButton_3_clicked();
      void on_pushButton_5_clicked();
      void on_pushButton_6_clicked();
+     void on_pushButton_8_clicked();
      void on_pushButton_7_clicked();
 };
 

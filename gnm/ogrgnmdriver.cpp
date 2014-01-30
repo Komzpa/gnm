@@ -47,6 +47,13 @@ OGRErr OGRGnmDriver::DeleteDataSource(const char *pszName)
 { 
     // TODO: test capability to delete a particular layer format.
 
+    // TODO: check if the given path is a data source of supported format,
+    // and has a network information.
+
+    // Here we create a new temporary data source in order to delete it
+    // layer by layer. So the note from the tutorial "Normally it would
+    // be safest if the datasource was not open at the time" is still
+    // actual (meaning OGRGnmDataSource).
     OGRGnmDataSource *poDS;
     poDS = (OGRGnmDataSource *) this->Open(pszName, TRUE);
     if(poDS == NULL)

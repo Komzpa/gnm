@@ -20,7 +20,7 @@
 static const char *GNMSupportedDrivers[] = {
     "ESRI Shapefile",
     "GeoJSON",
-    "PostgreSQL/PostGIS",
+    "PostgreSQL",
     "SQLite",
     NULL };
 
@@ -203,6 +203,8 @@ class OGRGnmDriver : public OGRSFDriver
 
      OGRDataSource *CreateDataSource(const char *pszName, char **papszOptions);
 
+     // Deletes data source layer by layer, avoiding layers, which are not included
+     // in the network.
      OGRErr DeleteDataSource(const char *pszName);
 
      int TestCapability(const char* pszCap);

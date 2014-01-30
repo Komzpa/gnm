@@ -3,6 +3,12 @@
 
 Widget::~Widget()
 {
+    // Close data source if it was not.
+    if (!wasDSClosed)
+    {
+        this->on_pushButton_7_clicked();
+    }
+
     delete ui;
 }
 
@@ -18,6 +24,11 @@ Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
     // Build an interface.
     connect(this,SIGNAL(toLog(QString)),this,SLOT(onToLog(QString)));
     ui->tabWidget->setTabText(0,QString::fromUtf8("log"));
+
+    poDriver = NULL;
+    poDataSource = NULL;
+    OGRRegisterAll();
+    wasDSClosed = true;
 }
 
 
@@ -26,27 +37,81 @@ Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
 /**********************************************************************/
 void Widget::on_pushButton_4_clicked()
 {
-    OGRRegisterAll(); // ogr\ogrsf_frmts\generic\ogrsfdriverregistrar.cpp
+    if (!wasDSClosed)
+    {
+        emit toLog(QString("[error] There is still opened DS"));
+        return;
+    }
 
-    OGRSFDriver *dr = new OGRGnmDriver();
+    //OGRRegisterAll(); // ogr\ogrsf_frmts\generic\ogrsfdriverregistrar.cpp
 
-    // Selecting a directory and data source format.
-    char* pszName = "..\\..\\temp";
+    ////OGRSFDriver *dr = new OGRGnmDriver();
+    poDriver = new OGRGnmDriver();
+
+    // Select a directory and data source format.
+    QByteArray ba = ui->lineEdit_5->text().toUtf8();
+    char* path = ba.data();
+    QByteArray ba2 = ui->lineEdit_6->text().toUtf8();
+    const char* driver = ba2.data();
+//test--------------------------------------
+    //char* pszName = "PG:\"dbname='test_postgis' host='127.0.0.1' port='5432' user='postgres' password='zsxcfv'\"";
+    //char* pszName = "PG:dbname=test_postgis";
+    //const char* pszDriver = "PostgreSQL";
+//------------------------------------------
+
+    // Create data source.
     char** papszOptions = NULL;
-    papszOptions = CSLAddNameValue(papszOptions, GNM_OPTION_DRIVER_NAME, "ESRI Shapefile");
-    OGRDataSource *ds = dr->CreateDataSource(pszName, papszOptions);
+    papszOptions = CSLAddNameValue(papszOptions, GNM_OPTION_DRIVER_NAME, driver);
+    ////OGRDataSource *ds = dr->CreateDataSource(pszName, papszOptions);
+    poDataSource = poDriver->CreateDataSource(path, papszOptions);
     CSLDestroy(papszOptions);
 
-    if (ds == NULL)
+    if (poDataSource == NULL)
     {
         emit toLog(QString("[error] Can not create data source"));
         return;
     }
 
     emit toLog(QString("[info] Data source has been successfully created"));
+    ui->label->setText("Currently opened network:  [" + QString(path) + "]  [" + QString(driver) + "]");
 
-    OGRDataSource::DestroyDataSource(ds);
+    wasDSClosed = false;
+    ////OGRDataSource::DestroyDataSource(ds);
 }
+
+
+/**********************************************************************/
+/*                             Open network                           */
+/**********************************************************************/
+void Widget::on_pushButton_8_clicked()
+{
+    if (!wasDSClosed)
+    {
+        emit toLog(QString("[error] There is still opened DS"));
+        return;
+    }
+
+    QByteArray ba = ui->lineEdit_8->text().toUtf8();
+    char* path = ba.data();
+    //(temporary instead of OGRSFDriverRegistrar)--------------
+    //poDataSource = OGRSFDriverRegistrar::Open(path, FALSE);
+    poDriver = new OGRGnmDriver();
+    //---------------------------------------------------------
+
+    poDataSource = poDriver->Open(path,FALSE);
+    if(poDataSource == NULL)
+    {
+        emit toLog(QString("[error] Can not open data source "));
+        return;
+    }
+
+    emit toLog(QString("[info] Data source has been successfully opened"));
+    ui->label->setText("Currently opened network:  [" + QString(path) + "]");
+
+    wasDSClosed = false;
+}
+
+
 
 
 /**********************************************************************/
@@ -54,32 +119,35 @@ void Widget::on_pushButton_4_clicked()
 /**********************************************************************/
 void Widget::on_pushButton_clicked()
 {
-    const char *str;
-
-    OGRRegisterAll();
-
-    OGRDataSource *poDS;
-    str = "..\\..\\temp";
-    //poDS = OGRSFDriverRegistrar::Open(str, FALSE);
-    //(temporary instead of OGRSFDriverRegistrar)--------------
-    OGRSFDriver *dr = new OGRGnmDriver();
-    poDS = dr->Open(str,FALSE);
-    //---------------------------------------------------------
-    if( poDS == NULL )
+    if (wasDSClosed)
     {
-        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        emit toLog(QString("[error] There is no opened DS"));
         return;
     }
+
+    ////const char *str;
+    ////OGRRegisterAll();
+    ////OGRDataSource *poDS;
+    ////str = "..\\..\\temp";
+    //////poDS = OGRSFDriverRegistrar::Open(str, FALSE);
+    //////(temporary instead of OGRSFDriverRegistrar)--------------
+    ////OGRSFDriver *dr = new OGRGnmDriver();
+    ////poDS = dr->Open(str,FALSE);
+    //////---------------------------------------------------------
+    ////if( poDS == NULL )
+    ////{
+        ////emit toLog(QString("[error] Can not open data source ") + QString(str));
+        ////return;
+    ////}
 
     QByteArray ba = ui->lineEdit_3->text().toUtf8();
-    const char* str2 = ba.data();
-    OGRLayer *poLayer = poDS->GetLayerByName(str2);
+    const char* name = ba.data();
+    OGRLayer *poLayer = poDataSource->GetLayerByName(name);
     if(poLayer == NULL)
     {
-        emit toLog(QString("[error] Can not open layer ") + QString(str2));
+        emit toLog(QString("[error] Can not open layer "));
         return;
     }
-
 //---test-----------------
     //const char *str1 = poLayer->GetFIDColumn();
     //const char *str2 = static_cast<OGRGnmLayer*>(poLayer)->getInnerLayer()->GetFIDColumn();
@@ -88,7 +156,7 @@ void Widget::on_pushButton_clicked()
     QString line;
     OGRFeature *poFeature;
     poLayer->ResetReading();
-    emit toLog("[output] " + QString(str2) + " features' attributes: ");
+    emit toLog("[output] " + QString(name) + " features' attributes: ");
     int iField;
     while((poFeature = poLayer->GetNextFeature()) != NULL)
     {
@@ -102,7 +170,7 @@ void Widget::on_pushButton_clicked()
         OGRFeature::DestroyFeature(poFeature);
     }
 
-    OGRDataSource::DestroyDataSource(poDS);
+    ////OGRDataSource::DestroyDataSource(poDS);
 }
 
 
@@ -111,22 +179,27 @@ void Widget::on_pushButton_clicked()
 /**********************************************************************/
 void Widget::on_pushButton_2_clicked()
 {
-    OGRRegisterAll();
-
-    OGRDataSource *poDS;
-    const char *str;
-    str = "..\\..\\temp";
-    OGRSFDriver *dr = new OGRGnmDriver();
-    poDS = dr->Open(str, TRUE);
-    if(poDS == NULL)
+    if (wasDSClosed)
     {
-        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        emit toLog(QString("[error] There is no opened DS"));
         return;
     }
 
+    ////OGRRegisterAll();
+    ////OGRDataSource *poDS;
+    ////const char *str;
+    ////str = "..\\..\\temp";
+    ////OGRSFDriver *dr = new OGRGnmDriver();
+    ////poDS = dr->Open(str, TRUE);
+    ////if(poDS == NULL)
+    ////{
+        ////emit toLog(QString("[error] Can not open data source ") + QString(str));
+        ////return;
+    ////}
+
     // Create additional (user) layer.
     OGRLayer *poLayer;
-    poLayer = poDS->CreateLayer("test_point_layer", NULL, wkbPoint, NULL);
+    poLayer = poDataSource->CreateLayer("test_point_layer", NULL, wkbPoint, NULL);
     if(poLayer == NULL)
     {
         emit toLog(QString("[error] Can not create layer"));
@@ -136,7 +209,7 @@ void Widget::on_pushButton_2_clicked()
     // Add an additional (user) attribute.
     OGRFieldDefn oField("test_field", OFTString);
     oField.SetWidth(32);
-    if(poLayer->CreateField( &oField ) != OGRERR_NONE)
+    if(poLayer->CreateField(&oField) != OGRERR_NONE)
     {
         emit toLog(QString("[error] Can not create field"));
         return;
@@ -148,7 +221,7 @@ void Widget::on_pushButton_2_clicked()
     {
         OGRFeature *poFeature;
         poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-        poFeature->SetField("test_field", QString(QString("aaa") + QString::number(i)).toUtf8().data());
+        poFeature->SetField("test_field", QString(QString("tratata") + QString::number(i)).toUtf8().data());
         OGRPoint pt;
         pt.setX(i * 5.0);
         pt.setY(0.0);
@@ -160,9 +233,17 @@ void Widget::on_pushButton_2_clicked()
         }
         OGRFeature::DestroyFeature(poFeature);
     }
-    emit toLog(QString("[info] Features have been added to the new layer successfully"));
 
-    OGRDataSource::DestroyDataSource(poDS);
+    if (poDataSource->SyncToDisk() != OGRERR_NONE)
+    {
+        emit toLog(QString("[error] Features have been added but not written to disk"));
+    }
+    else
+    {
+        emit toLog(QString("[info] Features have been added to the new layer successfully"));
+    }
+
+    ////OGRDataSource::DestroyDataSource(poDS);
 }
 
 
@@ -171,21 +252,26 @@ void Widget::on_pushButton_2_clicked()
 /**********************************************************************/
 void Widget::on_pushButton_3_clicked()
 {
-    OGRRegisterAll();
-
-    OGRDataSource *poDS;
-    const char *str;
-    str = "..\\..\\temp";
-    OGRSFDriver *dr = new OGRGnmDriver();
-    poDS = dr->Open(str,TRUE);
-    if(poDS == NULL)
+    if (wasDSClosed)
     {
-        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        emit toLog(QString("[error] There is no opened DS"));
         return;
     }
 
+    ////OGRRegisterAll();
+    ////OGRDataSource *poDS;
+    ////const char *str;
+    ////str = "..\\..\\temp";
+    ////OGRSFDriver *dr = new OGRGnmDriver();
+    ////poDS = dr->Open(str,TRUE);
+    ////if(poDS == NULL)
+    ////{
+        ////emit toLog(QString("[error] Can not open data source ") + QString(str));
+        ////return;
+    ////}
+
     long UFID = ui->lineEdit->text().toLong();
-    OGRFeature *poFeature = static_cast<OGRGnmDataSource*>(poDS)->getFeature(UFID);
+    OGRFeature *poFeature = static_cast<OGRGnmDataSource*>(poDataSource)->getFeature(UFID);
     if (poFeature == NULL)
     {
         emit toLog(QString("[error] Can not get feature "));
@@ -206,26 +292,7 @@ void Widget::on_pushButton_3_clicked()
        OGRFeature::DestroyFeature(poFeature);
     }
 
-    OGRDataSource::DestroyDataSource(poDS);
-}
-
-
-/**********************************************************************/
-/*                          Delete network                            */
-/**********************************************************************/
-void Widget::on_pushButton_5_clicked()
-{
-    OGRRegisterAll();
-
-    OGRSFDriver *dr = new OGRGnmDriver();
-
-    if (dr->DeleteDataSource("..\\..\\temp") != OGRERR_NONE)
-    {
-        emit toLog(QString("[error] Error while deleting layers in data source"));
-        return;
-    }
-
-    emit toLog(QString("[info] All layers have been deleted successfully"));
+    ////OGRDataSource::DestroyDataSource(poDS);
 }
 
 
@@ -234,17 +301,23 @@ void Widget::on_pushButton_5_clicked()
 /**********************************************************************/
 void Widget::on_pushButton_6_clicked()
 {
-    OGRRegisterAll();
-    OGRDataSource *poDS;
-    const char *str;
-    str = "..\\..\\temp";
-    OGRSFDriver *dr = new OGRGnmDriver();
-    poDS = dr->Open(str, TRUE);
-    if( poDS == NULL )
+    if (wasDSClosed)
     {
-        emit toLog(QString("[error] Can not open data source ") + QString(str));
+        emit toLog(QString("[error] There is no opened DS"));
         return;
     }
+
+    ////OGRRegisterAll();
+    ////OGRDataSource *poDS;
+    ////const char *str;
+    ////str = "..\\..\\temp";
+    ////OGRSFDriver *dr = new OGRGnmDriver();
+    ////poDS = dr->Open(str, TRUE);
+    ////if( poDS == NULL )
+    ////{
+        ////emit toLog(QString("[error] Can not open data source ") + QString(str));
+        ////return;
+    ////}
 
     char *path = NULL;
     char *layer = NULL;
@@ -252,22 +325,68 @@ void Widget::on_pushButton_6_clicked()
     path = ba1.data();
     QByteArray ba2 = ui->lineEdit_4->text().toUtf8();
     layer = ba2.data();
-    OGRErr err = static_cast<OGRGnmDataSource*>(poDS)->importLayer(path, layer, NULL);
+    OGRErr err = static_cast<OGRGnmDataSource*>(poDataSource)->importLayer(path, layer, NULL);
     if (err != OGRERR_NONE)
         emit toLog(QString("[error] Can not import layer "));
     else
-        emit toLog(QString("[info] The layer has been imported successfully"));
+    {
+        if (poDataSource->SyncToDisk() != OGRERR_NONE)
+        {
+            emit toLog(QString("[error] The layer has been imported but not written to disk"));
+        }
+        else
+        {
+            emit toLog(QString("[info] The layer has been imported successfully"));
+        }
+    }
 
-    OGRDataSource::DestroyDataSource(poDS);
+    ////OGRDataSource::DestroyDataSource(poDS);
 }
 
 
+/**********************************************************************/
+/*                          Close network                             */
+/**********************************************************************/
 void Widget::on_pushButton_7_clicked()
 {
+    if (wasDSClosed)
+    {
+        emit toLog(QString("[error] There is no opened DS"));
+        return;
+    }
 
+    OGRDataSource::DestroyDataSource(poDataSource);
+    delete poDriver;
+    emit toLog(QString("[info] The data source has been successfully closed"));
+    ui->label->setText("Currently opened network: -");
+    wasDSClosed = true;
 }
 
 
+/**********************************************************************/
+/*                          Delete network                            */
+/**********************************************************************/
+void Widget::on_pushButton_5_clicked()
+{
+    if (!wasDSClosed)
+    {
+        emit toLog(QString("[error] Close the DS before"));
+        return;
+    }
+    // The poDataSource must be closed at this time (destroyed).
+
+    QByteArray ba = ui->lineEdit_7->text().toUtf8();
+    char* path = ba.data();
+
+    OGRSFDriver *dr = new OGRGnmDriver();
+    if (dr->DeleteDataSource(path) != OGRERR_NONE)
+    {
+        emit toLog(QString("[error] Error while deleting layers in data source"));
+        return;
+    }
+
+    emit toLog(QString("[info] All layers have been deleted successfully"));
+}
 
 
 
