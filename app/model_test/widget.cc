@@ -11,12 +11,49 @@ Widget::~Widget()
 
     delete ui;
 }
-
 void Widget::onToLog(QString str)
 {
     ui->textEdit->append(str);
 }
-
+void Widget::on_comboBox_currentIndexChanged(const QString &arg1)
+{
+    if (arg1 == "ESRI Shapefile")
+    {
+        ui->lineEdit_5->setText("..\\\\..\\\\data\\\\shape");
+        ui->lineEdit_8->setText("..\\\\..\\\\data\\\\shape");
+        ui->lineEdit_7->setText("..\\\\..\\\\data\\\\shape");
+        ui->lineEdit_2->setText("..\\\\..\\\\import\\\\shape_test");
+    }
+    else if (arg1 == "PostgreSQL")
+    {
+        ui->lineEdit_5->setText("PG:dbname='test_postgis' host='127.0.0.1' port='5432' user='postgres' password='zsxcfv'");
+        ui->lineEdit_8->setText("PG:dbname='test_postgis' host='127.0.0.1' port='5432' user='postgres' password='zsxcfv'");
+        ui->lineEdit_7->setText("");
+        ui->lineEdit_2->setText("");
+    }
+    else if (arg1 == "SQLite")
+    {
+        // TODO: is it ok to create a file without any extension / or with .sqlite?
+        ui->lineEdit_5->setText("..\\\\..\\\\data\\\\sqlite\\\\test_db.sqlite");
+        ui->lineEdit_8->setText("");
+        ui->lineEdit_7->setText("");
+        ui->lineEdit_2->setText("");
+    }
+    else if (arg1 == "GeoJSON")
+    {
+        ui->lineEdit_5->setText("..\\\\..\\\\data\\\\geojson\\\\test.geojson");
+        ui->lineEdit_8->setText("..\\\\..\\\\data\\\\geojson\\\\test.geojson");
+        ui->lineEdit_7->setText("..\\\\..\\\\data\\\\geojson\\\\test.geojson");
+        ui->lineEdit_2->setText("");
+    }
+    else
+    {
+        ui->lineEdit_5->setText("");
+        ui->lineEdit_8->setText("");
+        ui->lineEdit_7->setText("");
+        ui->lineEdit_2->setText("");
+    }
+}
 Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
 {
     ui->setupUi(this);
@@ -24,10 +61,15 @@ Widget::Widget(QWidget *parent) :QWidget(parent),ui(new Ui::Widget)
     // Build an interface.
     connect(this,SIGNAL(toLog(QString)),this,SLOT(onToLog(QString)));
     ui->tabWidget->setTabText(0,QString::fromUtf8("log"));
+    ui->comboBox->setCurrentIndex(-1); // In order to emit CurrentIndexChanged.
+    ui->comboBox->setCurrentIndex(0);
 
     poDriver = NULL;
     poDataSource = NULL;
     OGRRegisterAll();
+    CPLSetConfigOption("CPL_DEBUG","ON"); //http://trac.osgeo.org/gdal/wiki/ConfigOptions#CPL_DEBUG
+    CPLSetConfigOption("CPL_LOG","..\\..\\info\\last_log.txt");
+    CPLSetConfigOption("CPL_LOG_ERRORS","ON");
     wasDSClosed = true;
 }
 
@@ -51,13 +93,8 @@ void Widget::on_pushButton_4_clicked()
     // Select a directory and data source format.
     QByteArray ba = ui->lineEdit_5->text().toUtf8();
     char* path = ba.data();
-    QByteArray ba2 = ui->lineEdit_6->text().toUtf8();
+    QByteArray ba2 = ui->comboBox->itemText(ui->comboBox->currentIndex()).toUtf8();
     const char* driver = ba2.data();
-//test--------------------------------------
-    //char* pszName = "PG:\"dbname='test_postgis' host='127.0.0.1' port='5432' user='postgres' password='zsxcfv'\"";
-    //char* pszName = "PG:dbname=test_postgis";
-    //const char* pszDriver = "PostgreSQL";
-//------------------------------------------
 
     // Create data source.
     char** papszOptions = NULL;
@@ -73,6 +110,7 @@ void Widget::on_pushButton_4_clicked()
     }
 
     emit toLog(QString("[info] Data source has been successfully created"));
+    QString p = QString(path);
     ui->label->setText("Currently opened network:  [" + QString(path) + "]  [" + QString(driver) + "]");
 
     wasDSClosed = false;

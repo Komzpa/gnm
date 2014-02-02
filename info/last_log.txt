@@ -1,0 +1,54 @@
+OGR: OGROpen(..\\..\\data\\shape/02552F68) succeeded as ESRI Shapefile.
+CPLError: Unable to open ..\\..\\data\\shape\network_meta.shp or ..\\..\\data\\shape\network_meta.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_meta.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_graph.shp or ..\\..\\data\\shape\network_graph.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_graph.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_rules.shp or ..\\..\\data\\shape\network_rules.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_rules.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_ids.shp or ..\\..\\data\\shape\network_ids.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_ids.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_register.shp or ..\\..\\data\\shape\network_register.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_register.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\test_point_layer.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\kolodci.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\lines.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\reshetki.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: 5 features read on layer 'network_meta'.
+Shape: 4086 features read on layer 'network_ids'.
+Shape: 8 features read on layer 'network_register'.
+Shape: 1 features read on layer 'test_point_layer'.
+Shape: 1 features read on layer 'reshetki'.
+OGR: OGROpen(..\\..\\data\\shape/02559258) succeeded as ESRI Shapefile.
+CPLError: Unable to open ..\\..\\data\\shape\network_meta.shp or ..\\..\\data\\shape\network_meta.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_meta.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_graph.shp or ..\\..\\data\\shape\network_graph.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_graph.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_rules.shp or ..\\..\\data\\shape\network_rules.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_rules.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_ids.shp or ..\\..\\data\\shape\network_ids.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_ids.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+CPLError: Unable to open ..\\..\\data\\shape\network_register.shp or ..\\..\\data\\shape\network_register.SHP.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\network_register.dbf
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\test_point_layer.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\kolodci.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\lines.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: DBF Codepage = LDID/87 for ..\\..\\data\\shape\reshetki.shp
+Shape: Treating as encoding 'ISO-8859-1'.
+Shape: 70 features read on layer 'network_register'.

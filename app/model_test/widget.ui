@@ -66,15 +66,38 @@
               <item>
                <widget class="QLineEdit" name="lineEdit_5">
                 <property name="text">
-                 <string>..\\..\\temp</string>
+                 <string/>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="lineEdit_6">
-                <property name="text">
-                 <string>ESRI Shapefile</string>
+               <widget class="QComboBox" name="comboBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
                 </property>
+                <item>
+                 <property name="text">
+                  <string>ESRI Shapefile</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>PostgreSQL</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>GeoJSON</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>SQLite</string>
+                 </property>
+                </item>
                </widget>
               </item>
              </layout>
@@ -97,7 +120,7 @@
               <item>
                <widget class="QLineEdit" name="lineEdit_8">
                 <property name="text">
-                 <string>..\\..\\temp</string>
+                 <string/>
                 </property>
                </widget>
               </item>
@@ -228,7 +251,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>..\\..\\temp\\import</string>
+                 <string>..\\..\\import\\test</string>
                 </property>
                </widget>
               </item>
@@ -281,7 +304,7 @@
               <item>
                <widget class="QLineEdit" name="lineEdit_7">
                 <property name="text">
-                 <string>..\\..\\temp</string>
+                 <string>..\\..\\data</string>
                 </property>
                </widget>
               </item>
